@@ -4,7 +4,7 @@ import FadeIn from '../components/FadeIn';
 import QuotaTable from '../components/QuotaTable';
 
 // TAMBAHKAN PROPS onOpenAuth
-const GuestView = ({ onOpenAuth }) => {
+const GuestView = ({ onOpenAuth, quotas }) => {
   return (
     <div>
       <header className="bg-blue-900 text-white relative py-20 md:py-32 border-b-8 border-orange-500 overflow-hidden text-center">
@@ -25,8 +25,9 @@ const GuestView = ({ onOpenAuth }) => {
         </div>
       </header>
 
-      {/* Sisa kodenya tetap sama persis seperti sebelumnya (QuotaTable, Alur, dll) */}
-      <section className="pt-16 px-4 bg-slate-50"><QuotaTable /></section>
+<section className="pt-16 px-4 bg-slate-50">
+        <QuotaTable quotas={quotas} />
+      </section>
 
       <section className="py-20 bg-white">
         <div className="max-w-6xl mx-auto px-6">

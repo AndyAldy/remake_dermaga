@@ -2,31 +2,24 @@ import React, { useState } from 'react';
 import FadeIn from '../components/FadeIn';
 import QuotaTable from '../components/QuotaTable';
 
-const SeleksiView = () => {
-  // State untuk menyimpan data input form
+// TAMBAHKAN 'quotas' SEBAGAI PROPS DI SINI
+const SeleksiView = ({ quotas }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  
-  // State untuk manajemen file
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileError, setFileError] = useState('');
 
-  // Fungsi untuk menangani saat user memilih file
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    
     if (file) {
-      // Validasi 1: Cek ukuran file (Maksimal 2MB = 2 * 1024 * 1024 bytes)
       const maxSize = 2 * 1024 * 1024;
-      
       if (file.size > maxSize) {
         setFileError('Gagal: Ukuran file melebihi batas maksimal 2MB!');
-        setSelectedFile(null); // Reset file jika kebesaran
+        setSelectedFile(null);
       } else if (file.type !== 'application/pdf') {
         setFileError('Gagal: Format file harus PDF!');
         setSelectedFile(null);
       } else {
-        // Jika lolos validasi
         setFileError('');
         setSelectedFile(file);
       }
@@ -37,7 +30,6 @@ const SeleksiView = () => {
     <div className="py-12 bg-slate-50 min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
         
-        {/* Status Banner */}
         <FadeIn>
           <div className="bg-amber-100 border-l-4 border-amber-500 text-amber-800 p-4 mb-8 rounded shadow-sm flex items-start gap-4">
             <svg className="w-6 h-6 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -48,7 +40,6 @@ const SeleksiView = () => {
           </div>
         </FadeIn>
 
-        {/* Formulir Data Diri */}
         <FadeIn delay={200}>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-10 mb-8">
             <h2 className="text-2xl font-bold text-blue-900 mb-6 border-b pb-4">Formulir Peserta Magang</h2>
@@ -69,8 +60,6 @@ const SeleksiView = () => {
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Asal Universitas / Sekolah</label>
                   <input type="text" className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-900 focus:outline-none" placeholder="Contoh: Universitas Diponegoro" required />
                 </div>
-                
-                {/* BAGIAN YANG DIUBAH: Pilihan Rentang Tanggal (Date Picker) */}
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Rencana Periode Magang</label>
                   <div className="flex items-center gap-2">
@@ -85,7 +74,7 @@ const SeleksiView = () => {
                     <input 
                       type="date" 
                       value={endDate}
-                      min={startDate} // Tanggal akhir tidak boleh mendahului tanggal mulai
+                      min={startDate}
                       onChange={(e) => setEndDate(e.target.value)}
                       className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-900 focus:outline-none bg-white text-slate-700 text-sm" 
                       required
@@ -94,22 +83,10 @@ const SeleksiView = () => {
                 </div>
               </div>
 
-              {/* BAGIAN YANG DIUBAH: Upload File Dinamis & Validasi */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Unggah Surat Pengantar / Pernyataan (PDF)</label>
-                
-                {/* Tag label menggantikan div agar seluruh kotak bisa diklik */}
                 <label className={`block border-2 ${fileError ? 'border-red-400 bg-red-50' : selectedFile ? 'border-emerald-400 bg-emerald-50' : 'border-dashed border-slate-300 hover:bg-slate-50'} rounded-lg p-8 text-center transition-colors cursor-pointer`}>
-                  
-                  {/* Input asli disembunyikan menggunakan tailwind 'hidden' */}
-                  <input 
-                    type="file" 
-                    accept=".pdf" 
-                    className="hidden" 
-                    onChange={handleFileChange}
-                  />
-
-                  {/* Kondisi Tampilan: Jika File Sukses Diunggah */}
+                  <input type="file" accept=".pdf" className="hidden" onChange={handleFileChange} />
                   {selectedFile ? (
                     <div>
                       <svg className="mx-auto h-12 w-12 text-emerald-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -118,7 +95,6 @@ const SeleksiView = () => {
                       <p className="text-xs text-slate-500 mt-4 underline decoration-slate-300">Klik lagi untuk mengganti file</p>
                     </div>
                   ) : (
-                    /* Kondisi Tampilan: Status Default / Belum ada file */
                     <div>
                       <svg className={`mx-auto h-12 w-12 mb-3 ${fileError ? 'text-red-400' : 'text-slate-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
                       <p className={`text-sm font-medium ${fileError ? 'text-red-600' : 'text-slate-600'}`}>Klik di sini untuk memilih file PDF</p>
@@ -126,8 +102,6 @@ const SeleksiView = () => {
                     </div>
                   )}
                 </label>
-
-                {/* Pesan Error jika file lebih dari 2MB */}
                 {fileError && (
                   <p className="text-red-500 text-xs mt-2 font-semibold flex items-center gap-1">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -145,8 +119,9 @@ const SeleksiView = () => {
           </div>
         </FadeIn>
 
-        {/* Tabel Kuota untuk mengecek sisa slot */}
-        <QuotaTable />
+        {/* TERUSKAN DATA QUOTAS KE TABEL */}
+        <QuotaTable quotas={quotas} />
+        
       </div>
     </div>
   );
