@@ -1,37 +1,39 @@
 import React from 'react';
 import FadeIn from '../../components/FadeIn';
 
-const PendaftarView = ({ pendaftar, setPendaftar, quotas, setQuotas }) => {
+const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
   
-  const handleDownloadImage = (namaPendaftar) => {
-    const dummyImageBase64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
-    const link = document.createElement("a");
-    link.href = dummyImageBase64;
-    link.download = `Berkas_${namaPendaftar.replace(/\s+/g, '_')}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Membuka PDF asli yang di-upload ke server Node.js
+  const handleDownloadPDF = (filename) => {
+    window.open(`http://localhost:5000/uploads/${filename}`, '_blank');
   };
 
-  // LOGIKA TERIMA PESERTA
-  const handleTerima = (peserta) => {
-    // 1. Cek apakah kuota divisi ini masih ada
-    const divisiTarget = quotas.find(q => q.id === peserta.divisiId);
+  const handleTerima = async (peserta) => {
+    const divisiTarget = quotas.find(q => q.id === peserta.divisi_id);
     if ((divisiTarget.total - divisiTarget.terisi) <= 0) {
-      alert("Gagal: Kuota untuk divisi ini sudah penuh! Silakan tambah kuota di Beranda Admin.");
+      alert("Gagal: Kuota untuk divisi ini sudah penuh!");
       return;
     }
 
-    if(window.confirm(`Yakin ingin MENERIMA ${peserta.nama}?`)) {
-      // 2. Tambah angka "terisi" di kuota
-      setQuotas(quotas.map(q => q.id === peserta.divisiId ? { ...q, terisi: q.terisi + 1 } : q));
-      // 3. Ubah status peserta agar hilang dari antrean pending
-      setPendaftar(pendaftar.map(p => p.id === peserta.id ? { ...p, status: 'diterima' } : p));
+    if(window.confirm(`Yakin ingin MENERIMA ${peserta.nama_peserta}?`)) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/admin/terima/${peserta.id}`, {
+          method: 'PUT'
+        });
+        
+        if (response.ok) {
+          alert('Peserta berhasil diterima!');
+          refreshData(); // Perbarui tabel admin otomatis
+        } else {
+          alert('Gagal memproses penerimaan.');
+        }
+      } catch (error) {
+        alert('Gagal menghubungi Server Database.');
+      }
     }
   };
 
-  // Filter hanya tampilkan yang statusnya masih 'pending'
-  const pendaftarPending = pendaftar.filter(p => p.status === 'pending');
+  const pendaftarPending = pendaftar.filter(p => p.status_seleksi === 'pending');
 
   return (
     <div className="p-6 md:p-10">
@@ -57,35 +59,28 @@ const PendaftarView = ({ pendaftar, setPendaftar, quotas, setQuotas }) => {
               </thead>
               <tbody className="text-sm">
                 {pendaftarPending.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-10 text-center text-slate-500 italic">Tidak ada pendaftar baru dalam antrean.</td>
-                  </tr>
+                  <tr><td colSpan="5" className="px-6 py-10 text-center text-slate-500 italic">Tidak ada pendaftar baru dalam antrean.</td></tr>
                 ) : (
-                  pendaftarPending.map((row) => {
-                    // Cari nama divisi untuk ditampilkan di tabel
-                    const namaDivisi = quotas.find(q => q.id === row.divisiId)?.divisi;
-                    
-                    return (
-                      <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50">
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-slate-800">{row.nama}</p>
-                          <p className="text-xs text-slate-500">{row.asal}</p>
-                        </td>
-                        <td className="px-6 py-4 text-slate-600">{row.nim}</td>
-                        <td className="px-6 py-4 text-slate-600 font-medium text-blue-800">{namaDivisi}</td>
-                        <td className="px-6 py-4 text-center">
-                          <button onClick={() => handleDownloadImage(row.nama)} className="text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 mx-auto bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                            Unduh
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 text-center space-x-2">
-                          <button onClick={() => handleTerima(row)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow">Terima</button>
-                          <button onClick={() => setPendaftar(pendaftar.map(p => p.id === row.id ? { ...p, status: 'ditolak' } : p))} className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-1.5 rounded text-xs font-bold transition-colors">Tolak</button>
-                        </td>
-                      </tr>
-                    )
-                  })
+                  pendaftarPending.map((row) => (
+                    <tr key={row.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="px-6 py-4">
+                        <p className="font-bold text-slate-800">{row.nama_peserta}</p>
+                        <p className="text-xs text-slate-500">{row.asal_sekolah_kampus}</p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-600">{row.nim_nisn}</td>
+                      <td className="px-6 py-4 text-slate-600 font-medium text-blue-800">{row.nama_divisi}</td>
+                      <td className="px-6 py-4 text-center">
+                        {/* Tombol akan membuka file PDF yang diupload */}
+                        <button onClick={() => handleDownloadPDF(row.berkas_pdf)} className="text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 mx-auto bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                          Cek PDF
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-center space-x-2">
+                        <button onClick={() => handleTerima(row)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow">Terima</button>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

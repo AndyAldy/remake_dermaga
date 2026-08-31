@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import DashboardView from './DashboardView';
 import PendaftarView from './PendaftarView';
 
-const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, setPendaftar }) => {
+const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData }) => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
 
   const handleSafeLogout = () => {
-    if (window.confirm("Yakin ingin keluar dari panel Administrator?")) {
-      onLogout();
-    }
+    if (window.confirm("Yakin ingin keluar dari panel Administrator?")) onLogout();
   };
 
   return (
@@ -30,9 +28,8 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, setPendafta
       </aside>
 
       <main className="flex-1 h-screen overflow-y-auto">
-        {/* Kirim props ke masing-masing halaman */}
         {activeMenu === 'dashboard' && <DashboardView user={user} quotas={quotas} setQuotas={setQuotas} />}
-        {activeMenu === 'pendaftar' && <PendaftarView pendaftar={pendaftar} setPendaftar={setPendaftar} quotas={quotas} setQuotas={setQuotas} />}
+        {activeMenu === 'pendaftar' && <PendaftarView pendaftar={pendaftar} quotas={quotas} refreshData={refreshData} />}
       </main>
     </div>
   );

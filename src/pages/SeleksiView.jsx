@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import FadeIn from '../components/FadeIn';
 import QuotaTable from '../components/QuotaTable';
 
-const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
-  // Cek apakah user saat ini sudah pernah mengirim form
-  const myApplication = pendaftar.find(p => p.nama === user?.name);
+const SeleksiView = ({ quotas, pendaftar, user, setUser, refreshData }) => {
+  // Cek database, apakah user_id peserta ini sudah ada di tabel pendaftaran
+  const myApplication = pendaftar.find(p => p.user_id === user?.id);
 
-  // State untuk Input Form
   const [nama, setNama] = useState(user?.name || '');
   const [nim, setNim] = useState('');
   const [asal, setAsal] = useState('');
@@ -32,85 +31,58 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
     }
   };
 
-  // Fungsi saat form dikirim
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedFile) {
-      setFileError('File surat pengantar wajib diunggah!');
-      return;
-    }
-    if (!divisiId) {
-      alert('Mohon pilih divisi penempatan!');
-      return;
-    }
+    if (!selectedFile) return setFileError('File surat pengantar wajib diunggah!');
+    if (!divisiId) return alert('Mohon pilih divisi penempatan!');
 
-    // Memasukkan data baru ke Global State App.jsx agar dibaca oleh Admin
-    const newPeserta = {
-      id: Date.now(),
-      nama: nama,
-      nim: nim,
-      asal: asal,
-      periode: `${startDate} s/d ${endDate}`,
-      divisiId: parseInt(divisiId),
-      status: 'pending' // Status awal
-    };
+    // Format pengiriman file dan data menggunakan FormData
+    const formData = new FormData();
+    formData.append('user_id', user.id);
+    formData.append('nama_peserta', nama);
+    formData.append('nim_nisn', nim);
+    formData.append('asal', asal);
+    formData.append('tanggal_mulai', startDate);
+    formData.append('tanggal_akhir', endDate);
+    formData.append('divisi_id', divisiId);
+    formData.append('berkas_pdf', selectedFile);
 
-    setPendaftar([...pendaftar, newPeserta]);
-    alert("Berkas berhasil dikirim! Silakan tunggu validasi dari Admin.");
+    try {
+      const response = await fetch('http://localhost:5000/api/pendaftar', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (response.ok) {
+        alert("Berkas berhasil dikirim ke Admin!");
+        refreshData(); // Perbarui data secara otomatis dari database
+      } else {
+        alert("Gagal mengirim berkas ke server.");
+      }
+    } catch (error) {
+      alert("Terjadi kesalahan koneksi.");
+    }
   };
 
-  // ==========================================
-  // TAMPILAN JIKA SUDAH PERNAH MENGIRIM BERKAS
-  // ==========================================
+  // TAMPILAN JIKA SUDAH MENGIRIM BERKAS
   if (myApplication) {
     return (
       <div className="py-20 bg-slate-50 min-h-screen text-center flex items-center justify-center">
         <div className="max-w-2xl mx-auto px-4">
           <FadeIn>
             <div className="bg-white p-10 rounded-2xl shadow-sm border border-slate-200">
-              
-              {/* Jika Masih Pending */}
-              {myApplication.status === 'pending' && (
+              {myApplication.status_seleksi === 'pending' && (
                 <>
                   <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
                     <svg className="w-10 h-10 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                   </div>
                   <h2 className="text-2xl font-bold text-slate-800 mb-2">Berkas Sedang Diproses</h2>
-                  <p className="text-slate-600">Terima kasih, <b>{user?.name}</b>. Berkas pendaftaran Anda telah kami terima dan sedang masuk dalam antrean validasi Admin.</p>
-                  <p className="text-sm text-amber-600 font-bold bg-amber-50 py-2 px-4 rounded-lg inline-block mt-6">Harap cek kembali halaman ini secara berkala.</p>
+                  <p className="text-slate-600">Berkas pendaftaran Anda masuk dalam antrean validasi Admin.</p>
                 </>
               )}
-
-              {/* Jika Diterima Admin */}
-              {myApplication.status === 'diterima' && (
-                <>
-                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Selamat! Anda Diterima</h2>
-                  <p className="text-slate-600">Admin BPS Kota Semarang telah memvalidasi berkas Anda dan Anda resmi diterima sebagai peserta magang/PKL.</p>
-                  {/* Tombol ajaib untuk meng-upgrade akun jadi "Lulus" */}
-                  <button onClick={() => setUser({...user, status: 'lulus'})} className="mt-8 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
-                    Buka Portal Pelaksanaan &rarr;
-                  </button>
-                </>
+              {myApplication.status_seleksi === 'ditolak' && (
+                <h2 className="text-2xl font-bold text-red-600 mb-2">Mohon Maaf, Berkas Ditolak Admin.</h2>
               )}
-
-              {/* Jika Ditolak Admin */}
-              {myApplication.status === 'ditolak' && (
-                <>
-                  <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                  </div>
-                  <h2 className="text-2xl font-bold text-slate-800 mb-2">Mohon Maaf, Berkas Ditolak</h2>
-                  <p className="text-slate-600">Terdapat ketidaksesuaian pada dokumen Anda atau kuota telah penuh.</p>
-                  {/* Hapus data peserta ini dari array agar dia bisa mengisi form ulang */}
-                  <button onClick={() => setPendaftar(pendaftar.filter(p => p.nama !== user.name))} className="mt-8 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
-                    Isi Ulang Formulir
-                  </button>
-                </>
-              )}
-
             </div>
           </FadeIn>
         </div>
@@ -118,10 +90,7 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
     );
   }
 
-  // ==========================================
-  // TAMPILAN FORMULIR (JIKA BELUM MENGIRIM)
-  // ==========================================
-  return (
+return (
     <div className="py-12 bg-slate-50 min-h-screen">
       <div className="max-w-4xl mx-auto px-4">
         
@@ -138,8 +107,6 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
         <FadeIn delay={200}>
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-10 mb-8">
             <h2 className="text-2xl font-bold text-blue-900 mb-6 border-b pb-4">Formulir Peserta Magang</h2>
-            
-            {/* TAMBAHAN onSubmit pada FORM */}
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -167,7 +134,6 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
                 </div>
               </div>
 
-              {/* FITUR BARU: Dropdown Pemilihan Divisi */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Pilihan Divisi Penempatan</label>
                 <select value={divisiId} onChange={(e) => setDivisiId(e.target.value)} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-900 focus:outline-none bg-white" required>
@@ -198,7 +164,6 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
               </div>
 
               <div className="flex justify-end pt-4">
-                {/* UBAH: type menjadi submit */}
                 <button type="submit" className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
                   Simpan & Kirim Berkas
                 </button>
@@ -208,7 +173,6 @@ const SeleksiView = ({ quotas, pendaftar, setPendaftar, user, setUser }) => {
         </FadeIn>
 
         <QuotaTable quotas={quotas} />
-        
       </div>
     </div>
   );
