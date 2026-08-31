@@ -6,7 +6,7 @@ const SeleksiView = ({ quotas, pendaftar, user, setUser, refreshData }) => {
   // Cek database, apakah user_id peserta ini sudah ada di tabel pendaftaran
   const myApplication = pendaftar.find(p => p.user_id === user?.id);
 
-  const [nama, setNama] = useState(user?.name || '');
+  const [nama, setNama] = useState(user?.name);
   const [nim, setNim] = useState('');
   const [asal, setAsal] = useState('');
   const [divisiId, setDivisiId] = useState('');
@@ -111,7 +111,7 @@ return (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">Nama Lengkap</label>
-                  <input type="text" value={nama} onChange={(e) => setNama(e.target.value)} className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-900 focus:outline-none" required />
+                  <input type="text" value={nama} disabled className="w-full border border-slate-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-900 focus:outline-none" required />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-2">NIM / NISN</label>

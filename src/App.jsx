@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import GuestView from './pages/GuestView';
 import SeleksiView from './pages/SeleksiView';
 import PelaksanaanView from './pages/PelaksanaanView';
-import AuthModal from './components/AuthModal';
+import AuthModal from './Auth/AuthModal';
 import AdminLayout from './pages/Admin/AdminLayout';
 
 function App() {
@@ -41,7 +41,7 @@ function App() {
 
   const handleLogout = () => setUser(null);
 
-  if (user?.status === 'admin') {
+if (user?.role === 'admin') {
     return (
       <AdminLayout 
         user={user} 
@@ -49,7 +49,7 @@ function App() {
         quotas={quotas} 
         setQuotas={setQuotas}
         pendaftar={pendaftar}
-        refreshData={refreshData} // Kirim fungsi refresh ke Admin
+        refreshData={refreshData}
       />
     );
   }

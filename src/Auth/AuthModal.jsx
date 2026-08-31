@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import FadeIn from './FadeIn';
+import FadeIn from '../components/FadeIn';
 
 const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
   const [mode, setMode] = useState(initialMode);
