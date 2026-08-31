@@ -4,7 +4,7 @@ import Footer from './components/Footer';
 import GuestView from './pages/GuestView';
 import SeleksiView from './pages/SeleksiView';
 import PelaksanaanView from './pages/PelaksanaanView';
-import AuthModal from './components/AuthModal';
+import AuthModal from './Auth/AuthModal';
 import AdminLayout from './pages/Admin/AdminLayout';
 
 // === DATA BAWAAN JIKA BROWSER KOSONG ===
