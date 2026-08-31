@@ -25,7 +25,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
       if (response.ok) {
         if (mode === 'login') {
           // Menyimpan status login dengan data asli dari database
-          onAuthSuccess({ id: data.id, name: data.name, email: data.email, status: data.status });
+          onAuthSuccess({ id: data.id, name: data.name, email: data.email, status: data.status, role: data.role });
         } else {
           alert('Registrasi berhasil! Silakan masuk.');
           setMode('login');
