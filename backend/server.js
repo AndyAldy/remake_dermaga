@@ -14,6 +14,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const dbConfig = { host: 'localhost', user: 'root', password: '', database: 'dermaga_bps' };
 
+
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = './uploads';
@@ -32,8 +34,8 @@ const otpStore = new Map(); // Menyimpan OTP sementara
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'EMAIL_GMAIL_ANDA@gmail.com', // GANTI DENGAN EMAIL ANDA
-        pass: 'MASUKKAN_16_DIGIT_SANDI_APLIKASI_DI_SINI' // GANTI DENGAN APP PASSWORD GOOGLE
+        user: 'andybung32@gmail.com', // GANTI DENGAN EMAIL ANDA
+        pass: 'fdke jafg ejad vegt' // GANTI DENGAN APP PASSWORD GOOGLE
     }
 });
 
@@ -48,7 +50,7 @@ app.post('/api/auth/send-otp', async (req, res) => {
     otpStore.set(email, { code: otpCode, expires: Date.now() + 300000 });
 
     const mailOptions = {
-        from: '"Portal SIMBA BPS" <no-reply@bps.go.id>',
+        from: '"Portal DERMAGA BPS" <no-reply@bps.go.id>',
         to: email,
         subject: 'Kode OTP Registrasi Portal Magang',
         html: `<div style="font-family: Arial, sans-serif; padding: 20px; text-align: center;">
@@ -133,15 +135,40 @@ app.get('/api/pendaftar', async (req, res) => {
 app.post('/api/pendaftar', upload.single('berkas_pdf'), async (req, res) => {
     try {
         const { user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id } = req.body;
-        const filename = req.file.filename;
+
         const connection = await mysql.createConnection(dbConfig);
+
+        // 1. CEK VALIDASI: Apakah NIM / NISN sudah ada di database?
+        const [cekNim] = await connection.execute('SELECT id FROM pendaftaran WHERE nim_nisn = ?', [nim_nisn]);
+
+        if (cekNim.length > 0) {
+            connection.end();
+            // PENTING: Karena Multer mengupload file SEBELUM kode ini berjalan,
+            // kita harus menghapus file PDF-nya agar tidak menjadi sampah di folder /uploads
+            if (req.file) {
+                fs.unlinkSync(req.file.path);
+            }
+            return res.status(400).json({ error: 'Pendaftaran Ditolak: NIM / NISN ini sudah terdaftar!' });
+        }
+
+        // 2. JIKA NIM BELUM ADA: Lanjutkan proses simpan data ke database
+        const filename = req.file.filename;
         await connection.execute(
             'INSERT INTO pendaftaran (user_id, nama_peserta, nim_nisn, asal_sekolah_kampus, tanggal_mulai, tanggal_akhir, divisi_id, berkas_pdf, status_seleksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id, filename, 'pending']
         );
         connection.end();
+        
         res.json({ success: true, message: 'Berkas berhasil dikirim!' });
-    } catch (error) { res.status(500).json({ error: 'Gagal mengirim berkas.' }); }
+
+    } catch (error) {
+        // Bersihkan file PDF juga jika terjadi error sistem/database
+        if (req.file) {
+            fs.unlinkSync(req.file.path);
+        }
+        console.error(error);
+        res.status(500).json({ error: 'Terjadi kesalahan sistem saat mengirim berkas.' });
+    }
 });
 
 app.put('/api/admin/terima/:id', async (req, res) => {

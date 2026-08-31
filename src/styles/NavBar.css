@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer components {
+  .nav-bar { @apply bg-white sticky top-0 z-50 shadow-md border-b border-slate-200; }
+  .nav-container { @apply max-w-7xl mx-auto px-4 py-4 flex justify-between items-center; }
+  .nav-logo-wrap { @apply flex items-center gap-3; }
+  .nav-logo-text { @apply font-extrabold text-2xl text-blue-900 tracking-tight; }
+  .nav-subtitle { @apply hidden sm:block border-l-2 border-slate-300 pl-3; }
+  .nav-desktop-menu { @apply hidden md:flex gap-3 items-center; }
+  .nav-btn-login { @apply text-blue-900 font-bold px-4 py-2 hover:bg-slate-100 rounded transition-colors text-sm; }
+  .nav-btn-register { @apply bg-orange-500 hover:bg-orange-600 text-white px-5 py-2 rounded shadow transition-all text-sm font-bold; }
+  .nav-user-badge { @apply flex items-center gap-3 bg-blue-50 px-4 py-2 rounded-full border border-blue-100; }
+  .nav-logout-btn { @apply text-xs text-red-500 hover:underline ml-2 font-semibold border-l border-blue-200 pl-3 focus:outline-none; }
+}

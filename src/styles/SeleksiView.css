@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer components {
+  .sv-wrapper { @apply py-12 bg-slate-50 min-h-screen; }
+  .sv-banner { @apply bg-amber-100 border-l-4 border-amber-500 text-amber-800 p-4 mb-8 rounded shadow-sm flex items-start gap-4 max-w-4xl mx-auto; }
+  .sv-card { @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-10 mb-8 max-w-4xl mx-auto; }
+  .sv-title { @apply text-2xl font-bold text-blue-900 mb-6 border-b pb-4; }
+  .sv-label { @apply block text-sm font-semibold text-slate-700 mb-2; }
+  .sv-upload { @apply block border-2 rounded-lg p-8 text-center transition-colors cursor-pointer; }
+  .sv-upload-default { @apply border-dashed border-slate-300 hover:bg-slate-50; }
+  .sv-upload-success { @apply border-emerald-400 bg-emerald-50; }
+  .sv-upload-error { @apply border-red-400 bg-red-50; }
+  
+  .sv-center-wrap { @apply py-20 bg-slate-50 min-h-screen text-center flex items-center justify-center; }
+  .sv-status-box { @apply bg-white p-10 rounded-2xl shadow-sm border border-slate-200 max-w-2xl mx-auto; }
+  .sv-icon-spin { @apply w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6; }
+  .sv-icon-fail { @apply w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6; }
+}
