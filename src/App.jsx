@@ -8,12 +8,27 @@ import AuthModal from './Auth/AuthModal';
 import AdminLayout from './pages/Admin/AdminLayout';
 
 function App() {
-  const [user, setUser] = useState(null);
+  // FITUR BARU: SAVE STATE SESSION
+  // Membaca memori browser saat web pertama kali dimuat
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('dermaga_session');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
+  
   const [quotas, setQuotas] = useState([]);
   const [pendaftar, setPendaftar] = useState([]);
   const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
 
-  // Fungsi untuk mengambil data dari Backend MySQL
+  // FITUR BARU: AUTOSAVE SESSION
+  // Menyimpan data user ke memori browser setiap kali ada perubahan login/logout
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem('dermaga_session', JSON.stringify(user));
+    } else {
+      localStorage.removeItem('dermaga_session');
+    }
+  }, [user]);
+
   const refreshData = async () => {
     try {
       const resQuotas = await fetch('http://localhost:5000/api/quotas');
@@ -26,7 +41,6 @@ function App() {
     }
   };
 
-  // Panggil refreshData saat aplikasi pertama kali dibuka
   useEffect(() => {
     refreshData();
   }, []);
@@ -41,7 +55,7 @@ function App() {
 
   const handleLogout = () => setUser(null);
 
-if (user?.role === 'admin') {
+  if (user?.role === 'admin') {
     return (
       <AdminLayout 
         user={user} 
@@ -66,7 +80,7 @@ if (user?.role === 'admin') {
             pendaftar={pendaftar} 
             user={user}
             setUser={setUser}
-            refreshData={refreshData} // Kirim fungsi refresh ke Form
+            refreshData={refreshData}
           />
         )}
         {user?.status === 'lulus' && <PelaksanaanView />}
