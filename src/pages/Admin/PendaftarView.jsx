@@ -3,33 +3,31 @@ import FadeIn from '../../components/FadeIn';
 
 const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
   
-  // Membuka PDF asli yang di-upload ke server Node.js
   const handleDownloadPDF = (filename) => {
     window.open(`http://localhost:5000/uploads/${filename}`, '_blank');
   };
 
   const handleTerima = async (peserta) => {
     const divisiTarget = quotas.find(q => q.id === peserta.divisi_id);
-    if ((divisiTarget.total - divisiTarget.terisi) <= 0) {
-      alert("Gagal: Kuota untuk divisi ini sudah penuh!");
-      return;
-    }
+    if ((divisiTarget.total - divisiTarget.terisi) <= 0) return alert("Gagal: Kuota untuk divisi ini sudah penuh!");
 
     if(window.confirm(`Yakin ingin MENERIMA ${peserta.nama_peserta}?`)) {
       try {
-        const response = await fetch(`http://localhost:5000/api/admin/terima/${peserta.id}`, {
-          method: 'PUT'
-        });
-        
-        if (response.ok) {
-          alert('Peserta berhasil diterima!');
-          refreshData(); // Perbarui tabel admin otomatis
-        } else {
-          alert('Gagal memproses penerimaan.');
-        }
-      } catch (error) {
-        alert('Gagal menghubungi Server Database.');
-      }
+        const response = await fetch(`http://localhost:5000/api/admin/terima/${peserta.id}`, { method: 'PUT' });
+        if (response.ok) { alert('Peserta berhasil diterima!'); refreshData(); } 
+        else alert('Gagal memproses penerimaan.');
+      } catch (error) { alert('Gagal menghubungi Server Database.'); }
+    }
+  };
+
+  // FITUR BARU: Fungsi Tolak
+  const handleTolak = async (peserta) => {
+    if(window.confirm(`Yakin ingin MENOLAK ${peserta.nama_peserta}?`)) {
+      try {
+        const response = await fetch(`http://localhost:5000/api/admin/tolak/${peserta.id}`, { method: 'PUT' });
+        if (response.ok) { alert('Peserta berhasil ditolak!'); refreshData(); } 
+        else alert('Gagal memproses penolakan.');
+      } catch (error) { alert('Gagal menghubungi Server Database.'); }
     }
   };
 
@@ -45,16 +43,16 @@ const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="admin-table-box">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-slate-600 text-sm border-b border-slate-200">
-                  <th className="px-6 py-4 font-semibold">Nama & Asal</th>
-                  <th className="px-6 py-4 font-semibold">NIM/NISN</th>
-                  <th className="px-6 py-4 font-semibold">Pilihan Divisi</th>
-                  <th className="px-6 py-4 font-semibold text-center">Berkas</th>
-                  <th className="px-6 py-4 font-semibold text-center">Aksi (Terima/Tolak)</th>
+                <tr>
+                  <th className="admin-th">Nama & Asal</th>
+                  <th className="admin-th">NIM/NISN</th>
+                  <th className="admin-th">Pilihan Divisi</th>
+                  <th className="admin-th text-center">Berkas</th>
+                  <th className="admin-th text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
@@ -70,14 +68,12 @@ const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
                       <td className="px-6 py-4 text-slate-600">{row.nim_nisn}</td>
                       <td className="px-6 py-4 text-slate-600 font-medium text-blue-800">{row.nama_divisi}</td>
                       <td className="px-6 py-4 text-center">
-                        {/* Tombol akan membuka file PDF yang diupload */}
-                        <button onClick={() => handleDownloadPDF(row.berkas_pdf)} className="text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 mx-auto bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                          Cek PDF
-                        </button>
+                        <button onClick={() => handleDownloadPDF(row.berkas_pdf)} className="admin-btn-dl">Cek PDF</button>
                       </td>
-                      <td className="px-6 py-4 text-center space-x-2">
-                        <button onClick={() => handleTerima(row)} className="bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors shadow">Terima</button>
+                      <td className="px-6 py-4 text-center flex justify-center gap-2 items-center h-full">
+                        <button onClick={() => handleTerima(row)} className="admin-btn-acc">Terima</button>
+                        {/* FITUR BARU: Tombol Tolak */}
+                        <button onClick={() => handleTolak(row)} className="admin-btn-reject">Tolak</button>
                       </td>
                     </tr>
                   ))
@@ -90,5 +86,4 @@ const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
     </div>
   );
 };
-
 export default PendaftarView;

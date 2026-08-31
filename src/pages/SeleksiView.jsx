@@ -3,7 +3,7 @@ import FadeIn from '../components/FadeIn';
 import QuotaTable from '../components/QuotaTable';
 import '../styles/SeleksiView.css';
 
-const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
+const SeleksiView = ({ quotas, pendaftar, user, refreshData, status_seleksi }) => {
   const myApp = pendaftar.find(p => p.user_id === user?.id);
 
   const [nim, setNim] = useState('');
@@ -43,9 +43,51 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
         <FadeIn>
           <div className="sv-status-box">
             {myApp.status_seleksi === 'pending' ? (
-              <><div className="sv-icon-spin">...</div><h2 className="text-2xl font-bold mb-2">Sedang Diproses</h2></>
+              <><div className="sv-icon-spin">...</div><h2 className="text-2xl font-bold mb-2">Sedang Diproses, Mohon Bersabar 24/7</h2></>
             ) : (
               <><div className="sv-icon-fail">X</div><h2 className="text-2xl font-bold text-red-600 mb-2">Berkas Ditolak</h2></>
+            )}
+          </div>
+        </FadeIn>
+      </div>
+    );
+  }
+const handleReapply = async () => {
+    if (window.confirm("Hapus data pendaftaran sebelumnya dan isi ulang formulir?")) {
+      try {
+        await fetch(`http://localhost:5000/api/pendaftar/${myApp.id}`, { method: 'DELETE' });
+        refreshData();
+      } catch(e) { alert("Gagal menghapus data."); }
+    }
+  };
+
+  if (myApp) {
+    return (
+      <div className="sv-center-wrap">
+        <FadeIn>
+          <div className="sv-status-box">
+            {myApp.status_seleksi === 'pending' ? (
+              <>
+                <div className="sv-icon-spin">
+                  <svg className="w-10 h-10 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Sedang Diproses</h2>
+                <p className="text-slate-600">Berkas pendaftaran Anda masuk dalam antrean validasi Admin.</p>
+              </>
+            ) : (
+              // TAMPILAN BARU: Permohonan Maaf & Tombol Daftar Ulang
+              <>
+                <div className="sv-icon-fail">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </div>
+                <h2 className="text-2xl font-bold text-red-600 mb-3">Mohon Maaf, Berkas Anda Ditolak</h2>
+                <p className="text-slate-600 text-sm mb-8 leading-relaxed px-4">
+                  Berdasarkan hasil verifikasi tim BPS Kota Semarang, permohonan magang Anda belum dapat kami terima saat ini. Hal ini mungkin disebabkan oleh ketidaksesuaian dokumen pengantar atau kuota divisi yang telah terpenuhi penuh.
+                </p>
+                <button onClick={handleReapply} className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all focus:outline-none">
+                  Hapus & Isi Ulang Formulir
+                </button>
+              </>
             )}
           </div>
         </FadeIn>

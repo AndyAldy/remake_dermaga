@@ -23,7 +23,7 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
             </>
           ) : (
             <div className="nav-user-badge">
-              <span className="nav-user-name">{user.name}</span>
+              <span className="nav-user-name">{user.name}, {status_seleksi}</span>
               <button onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} className="nav-logout-btn">Keluar</button>
             </div>
           )}

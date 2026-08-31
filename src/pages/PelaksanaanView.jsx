@@ -1,7 +1,7 @@
 import React from 'react';
 import FadeIn from '../components/FadeIn';
 
-const PelaksanaanView = () => {
+const PelaksanaanView = ({status_seleksi}) => {
   const menus = [
     { title: "Presensi Harian", icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", desc: "Isi daftar hadir masuk dan pulang." },
     { title: "Logbook Kegiatan", icon: "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z", desc: "Catat aktivitas magang harian Anda." },

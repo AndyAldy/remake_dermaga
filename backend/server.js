@@ -71,6 +71,46 @@ app.post('/api/auth/send-otp', async (req, res) => {
 });
 
 // ==========================================
+// ENDPOINT ADMIN: TOLAK PESERTA
+// ==========================================
+app.put('/api/admin/tolak/:id', async (req, res) => {
+    try {
+        const pendaftarId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+        // Ubah status menjadi ditolak
+        await connection.execute("UPDATE pendaftaran SET status_seleksi = 'ditolak' WHERE id = ?", [pendaftarId]);
+        connection.end();
+        res.json({ success: true, message: 'Peserta berhasil ditolak!' });
+    } catch (error) {
+        res.status(500).json({ error: 'Gagal menolak peserta.' });
+    }
+});
+
+// ==========================================
+// ENDPOINT USER: HAPUS PENDAFTARAN (Agar bisa daftar ulang)
+// ==========================================
+app.delete('/api/pendaftar/:id', async (req, res) => {
+    try {
+        const pendaftarId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+        
+        // Cek nama file PDF untuk dihapus dari folder server agar tidak menumpuk
+        const [rows] = await connection.execute('SELECT berkas_pdf FROM pendaftaran WHERE id = ?', [pendaftarId]);
+        if (rows.length > 0) {
+            const filepath = path.join(__dirname, 'uploads', rows[0].berkas_pdf);
+            if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+        }
+
+        // Hapus data dari database
+        await connection.execute("DELETE FROM pendaftaran WHERE id = ?", [pendaftarId]);
+        connection.end();
+        res.json({ success: true, message: 'Pendaftaran dihapus.' });
+    } catch (error) {
+        res.status(500).json({ error: 'Gagal menghapus data pendaftaran.' });
+    }
+});
+
+// ==========================================
 // ENDPOINT AUTH (DIPERBARUI DENGAN VALIDASI OTP)
 // ==========================================
 app.post('/api/auth/register', async (req, res) => {

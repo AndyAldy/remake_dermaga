@@ -102,10 +102,24 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
               <div>
                 <label className="auth-label">Kata Sandi</label>
-                <div className="auth-pwd-wrapper">
-                  <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} className="input-field pr-12" placeholder="••••••••" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="auth-pwd-toggle">O</button>
-                </div>
+<div className="auth-pwd-wrapper">
+  <input 
+    type={showPassword ? "text" : "password"} 
+    required 
+    value={password} 
+    onChange={(e) => setPassword(e.target.value)} 
+    className="input-field pr-12" 
+    placeholder="••••••••" 
+  />
+  <button 
+    type="button" 
+    onClick={() => setShowPassword(!showPassword)} 
+    className="auth-pwd-toggle"
+    title={showPassword ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
+  >
+    {showPassword ? "🙈" : "🙉"}
+  </button>
+</div>
               </div>
 
               <button type="submit" className="btn-primary">
