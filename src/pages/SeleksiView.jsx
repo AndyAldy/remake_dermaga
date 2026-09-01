@@ -3,7 +3,7 @@ import FadeIn from '../components/FadeIn';
 import QuotaTable from '../components/QuotaTable';
 import '../styles/SeleksiView.css';
 
-const SeleksiView = ({ quotas, pendaftar, user, refreshData, status_seleksi }) => {
+const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const myApp = pendaftar.find(p => p.user_id === user?.id);
 
   const [nim, setNim] = useState('');

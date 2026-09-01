@@ -152,10 +152,16 @@ app.post('/api/auth/login', async (req, res) => {
         const isMatch = (username === 'admin' && password === 'admin123') ? true : await bcrypt.compare(password, user.password);
 
         if (!isMatch) return res.status(401).json({ error: 'Password salah' });
-        res.json({ id: user.id, name: user.nama_lengkap, email: user.username, role: user.role, status: user.status_akun });
-    } catch (error) {
-        res.status(500).json({ error: 'Terjadi kesalahan server' });
-    }
+res.json({ 
+                id: user.id, 
+                name: user.nama_lengkap, 
+                email: user.username, 
+                role: user.role, 
+                status: user.status_akun || 'seleksi' 
+            });
+        } catch (error) {
+            res.status(500).json({ error: 'Terjadi kesalahan server' });
+        }
 });
 
 app.get('/api/quotas', async (req, res) => {

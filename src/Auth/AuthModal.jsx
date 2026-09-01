@@ -38,9 +38,12 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     } catch (error) { alert("Server Error."); } finally { setIsLoadingOTP(false); }
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
-    if (mode === 'register' && (!otpSent || otpCode.length < 4)) return alert("Lengkapi OTP!");
+    
+    if (mode === 'register' && (!otpSent || otpCode.length < 4)) {
+      return alert("Silakan selesaikan pengisian OTP terlebih dahulu!");
+    }
     
     const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
     const payload = mode === 'login' ? { username, password } : { username, password, nama_lengkap: name, otp: otpCode };
@@ -54,9 +57,26 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
       const data = await response.json();
 
       if (response.ok) {
-        mode === 'login' ? onAuthSuccess(data) : alert('Registrasi Berhasil!') && toggleMode();
-      } else alert(data.error);
-    } catch (error) { alert('Server Error.'); }
+        if (mode === 'login') {
+          // PAKSA beri nilai 'seleksi' jika data dari database ternyata kosong
+          onAuthSuccess({
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            status: data.status || 'seleksi'
+          });
+        } else {
+          // Logika sukses registrasi dipisah agar toggleMode() berjalan lancar
+          alert('Pendaftaran Berhasil! Email telah terverifikasi. Silakan masuk.');
+          toggleMode();
+        }
+      } else {
+        alert(data.error);
+      }
+    } catch (error) { 
+      alert('Terjadi kesalahan. Pastikan Server Backend menyala.'); 
+    }
   };
 
   return (

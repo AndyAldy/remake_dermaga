@@ -72,18 +72,19 @@ function App() {
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
       <Navbar user={user} onLogout={handleLogout} onOpenAuth={handleOpenAuth} />
 
-      <main className="flex-grow w-full">
-        {!user && <GuestView onOpenAuth={handleOpenAuth} quotas={quotas} />}
-        {user?.status === 'seleksi' && (
+<main className="flex-grow w-full">
+        {!user ? (
+          <GuestView onOpenAuth={handleOpenAuth} quotas={quotas} />
+        ) : user.status === 'lulus' ? (
+          <PelaksanaanView />
+        ) : (
           <SeleksiView 
             quotas={quotas} 
             pendaftar={pendaftar} 
             user={user}
-            setUser={setUser}
             refreshData={refreshData}
           />
         )}
-        {user?.status === 'lulus' && <PelaksanaanView />}
       </main>
       
       <Footer />
