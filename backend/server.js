@@ -76,11 +76,16 @@ app.post('/api/auth/send-otp', async (req, res) => {
 app.put('/api/admin/tolak/:id', async (req, res) => {
     try {
         const pendaftarId = req.params.id;
+        const { alasan } = req.body; // Tangkap alasan dari Admin Frontend
+        
         const connection = await mysql.createConnection(dbConfig);
-        // Ubah status menjadi ditolak
-        await connection.execute("UPDATE pendaftaran SET status_seleksi = 'ditolak' WHERE id = ?", [pendaftarId]);
+        // Update status menjadi ditolak dan simpan alasannya
+        await connection.execute(
+            "UPDATE pendaftaran SET status_seleksi = 'ditolak', alasan_tolak = ? WHERE id = ?", 
+            [alasan || 'Tidak sesuai kriteria', pendaftarId]
+        );
         connection.end();
-        res.json({ success: true, message: 'Peserta berhasil ditolak!' });
+        res.json({ success: true, message: 'Peserta berhasil ditolak dan alasan telah dikirim!' });
     } catch (error) {
         res.status(500).json({ error: 'Gagal menolak peserta.' });
     }
@@ -94,14 +99,14 @@ app.delete('/api/pendaftar/:id', async (req, res) => {
         const pendaftarId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
         
-        // Cek nama file PDF untuk dihapus dari folder server agar tidak menumpuk
-        const [rows] = await connection.execute('SELECT berkas_pdf FROM pendaftaran WHERE id = ?', [pendaftarId]);
+        const [rows] = await connection.execute('SELECT berkas_pdf, berkas_cv FROM pendaftaran WHERE id = ?', [pendaftarId]);
         if (rows.length > 0) {
-            const filepath = path.join(__dirname, 'uploads', rows[0].berkas_pdf);
-            if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
+            const pdfPath = path.join(__dirname, 'uploads', rows[0].berkas_pdf);
+            const cvPath = path.join(__dirname, 'uploads', rows[0].berkas_cv);
+            if (fs.existsSync(pdfPath)) fs.unlinkSync(pdfPath);
+            if (rows[0].berkas_cv && fs.existsSync(cvPath)) fs.unlinkSync(cvPath);
         }
 
-        // Hapus data dari database
         await connection.execute("DELETE FROM pendaftaran WHERE id = ?", [pendaftarId]);
         connection.end();
         res.json({ success: true, message: 'Pendaftaran dihapus.' });
@@ -178,42 +183,37 @@ app.get('/api/pendaftar', async (req, res) => {
     res.json(rows);
 });
 
-app.post('/api/pendaftar', upload.single('berkas_pdf'), async (req, res) => {
+app.post('/api/pendaftar', upload.fields([
+    { name: 'berkas_pdf', maxCount: 1 }, 
+    { name: 'berkas_cv', maxCount: 1 }
+]), async (req, res) => {
     try {
         const { user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id } = req.body;
-
         const connection = await mysql.createConnection(dbConfig);
 
-        // 1. CEK VALIDASI: Apakah NIM / NISN sudah ada di database?
         const [cekNim] = await connection.execute('SELECT id FROM pendaftaran WHERE nim_nisn = ?', [nim_nisn]);
-
         if (cekNim.length > 0) {
             connection.end();
-            // PENTING: Karena Multer mengupload file SEBELUM kode ini berjalan,
-            // kita harus menghapus file PDF-nya agar tidak menjadi sampah di folder /uploads
-            if (req.file) {
-                fs.unlinkSync(req.file.path);
-            }
-            return res.status(400).json({ error: 'Pendaftaran Ditolak: NIM / NISN ini sudah terdaftar!' });
+            // Hapus kedua file jika ditolak karena NIM duplikat
+            if (req.files['berkas_pdf']) fs.unlinkSync(req.files['berkas_pdf'][0].path);
+            if (req.files['berkas_cv']) fs.unlinkSync(req.files['berkas_cv'][0].path);
+            return res.status(400).json({ error: 'NIM / NISN sudah terdaftar!' });
         }
 
-        // 2. JIKA NIM BELUM ADA: Lanjutkan proses simpan data ke database
-        const filename = req.file.filename;
+        const filenamePdf = req.files['berkas_pdf'][0].filename;
+        const filenameCv = req.files['berkas_cv'][0].filename;
+
         await connection.execute(
-            'INSERT INTO pendaftaran (user_id, nama_peserta, nim_nisn, asal_sekolah_kampus, tanggal_mulai, tanggal_akhir, divisi_id, berkas_pdf, status_seleksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id, filename, 'pending']
+            'INSERT INTO pendaftaran (user_id, nama_peserta, nim_nisn, asal_sekolah_kampus, tanggal_mulai, tanggal_akhir, divisi_id, berkas_pdf, berkas_cv, status_seleksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id, filenamePdf, filenameCv, 'pending']
         );
         connection.end();
-        
         res.json({ success: true, message: 'Berkas berhasil dikirim!' });
 
     } catch (error) {
-        // Bersihkan file PDF juga jika terjadi error sistem/database
-        if (req.file) {
-            fs.unlinkSync(req.file.path);
-        }
-        console.error(error);
-        res.status(500).json({ error: 'Terjadi kesalahan sistem saat mengirim berkas.' });
+        if (req.files && req.files['berkas_pdf']) fs.unlinkSync(req.files['berkas_pdf'][0].path);
+        if (req.files && req.files['berkas_cv']) fs.unlinkSync(req.files['berkas_cv'][0].path);
+        res.status(500).json({ error: 'Gagal mengirim berkas.' });
     }
 });
 
@@ -232,6 +232,8 @@ app.put('/api/admin/terima/:id', async (req, res) => {
         res.json({ success: true, message: 'Peserta diterima!' });
     } catch (error) { res.status(500).json({ error: 'Gagal menerima peserta.' }); }
 });
+
+
 
 const PORT = 5000;
 app.listen(PORT, () => { console.log(`Backend Server berjalan di http://localhost:${PORT}`); });

@@ -23,7 +23,12 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
             </>
           ) : (
             <div className="nav-user-badge">
-              <span className="nav-user-name">{user.name}, {status_seleksi}</span>
+              <div className="flex flex-col items-end mr-1">
+                <span className="font-bold text-sm text-blue-900 leading-none">{user.name}</span>
+                <span className="text-[10px] font-extrabold text-orange-600 uppercase tracking-widest mt-1">
+                  Status: {user.role === 'admin' ? 'Admin' : (user.status || 'Seleksi')}
+                </span>
+              </div>
               <button onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} className="nav-logout-btn">Keluar</button>
             </div>
           )}
