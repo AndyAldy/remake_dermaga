@@ -6,6 +6,7 @@ import SeleksiView from './pages/SeleksiView';
 import PelaksanaanView from './pages/PelaksanaanView';
 import AdminLayout from './pages/Admin/AdminLayout';
 import { supabase } from './supabase';
+import AuthModal from './Auth/AuthModal';
 import './styles/App.css';
 
 const App = () => {
