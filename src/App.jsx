@@ -14,6 +14,16 @@ const App = () => {
   const [pendaftar, setPendaftar] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Tambahan state untuk Auth Modal
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('login');
+
+  const handleOpenAuth = (mode) => {
+    setAuthMode(mode);
+    setIsAuthOpen(true);
+  };
+
+
   // 1. FUNGSI UTAMA UNTUK MENARIK SEMUA DATA DARI SUPABASE
   const fetchData = async () => {
     try {
@@ -101,13 +111,21 @@ const App = () => {
   }
 
   // 5. PENGATURAN TAMPILAN HALAMAN (ROUTING)
-  return (
+return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* Jika GuestView sudah punya Navbar sendiri, Navbar ini bisa diatur opsional */}
-      <Navbar user={user} onLogout={handleLogout} />
+      <Navbar user={user} onLogout={handleLogout} onOpenAuth={handleOpenAuth} />
       
-      <main className="flex-grow">
-        {!user ? (
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)} 
+        initialMode={authMode} 
+        onAuthSuccess={(userData) => {
+          handleUserSession(userData);
+          setIsAuthOpen(false);
+        }} 
+      />
+      
+      <main className="flex-grow">        {!user ? (
           // Jika belum login, tampilkan Beranda (GuestView)
           <GuestView quotas={quotas} />
         ) : user.role === 'admin' ? (
