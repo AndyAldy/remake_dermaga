@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './components/navbar';
+import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import GuestView from './pages/GuestView';
 import SeleksiView from './pages/SeleksiView';
