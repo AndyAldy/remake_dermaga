@@ -1,5 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const allowedOrigins = [
+  'https://remakedermaga.vercel.app/', // Ganti dengan URL Vercel kamu
+  'http://localhost:5173' // Default port Vite
+];
 const mysql = require('mysql2/promise');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
@@ -8,7 +12,16 @@ const fs = require('fs');
 const nodemailer = require('nodemailer'); // PUSTAKA BARU
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -234,6 +247,5 @@ app.put('/api/admin/terima/:id', async (req, res) => {
 });
 
 
-
-const PORT = 5000;
-app.listen(PORT, () => { console.log(`Backend Server berjalan di http://localhost:${PORT}`); });
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server jalan di port ${PORT}`));
