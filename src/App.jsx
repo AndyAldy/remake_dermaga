@@ -109,7 +109,7 @@ const App = () => {
       <main className="flex-grow">
         {!user ? (
           // Jika belum login, tampilkan Beranda (GuestView)
-          <GuestView />
+          <GuestView quotas={quotas} />
         ) : user.role === 'admin' ? (
           // Jika login sebagai Admin, tampilkan Panel Admin
           <AdminLayout quotas={quotas} pendaftar={pendaftar} refreshData={fetchData} />
