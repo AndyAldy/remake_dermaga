@@ -6,7 +6,7 @@
 "scripts": {
   "start": "node server.js",
   "build": "vite build",
-  "dev": "vite",
+  "dev": "vite"
 },
   "dependencies": {
     "bcryptjs": "^3.0.3",
