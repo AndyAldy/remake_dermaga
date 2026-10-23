@@ -18,15 +18,17 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
         <div className="nav-desktop-menu">
           {!user ? (
             <>
-              <button onClick={() => onOpenAuth('login')} className="nav-btn-login">Masuk</button>
-              <button onClick={() => onOpenAuth('register')} className="nav-btn-register">Daftar</button>
+              {/* Tambahan pengaman pada onOpenAuth agar tidak crash saat di-klik */}
+              <button onClick={() => onOpenAuth && onOpenAuth('login')} className="nav-btn-login">Masuk</button>
+              <button onClick={() => onOpenAuth && onOpenAuth('register')} className="nav-btn-register">Daftar</button>
             </>
           ) : (
             <div className="nav-user-badge">
               <div className="flex flex-col items-end mr-1">
-                <span className="font-bold text-sm text-blue-900 leading-none">{user.name}</span>
+                {/* DITAMBAHKAN TANDA TANYA (?) PADA PROPERTI USER */}
+                <span className="font-bold text-sm text-blue-900 leading-none">{user?.name}</span>
                 <span className="text-[10px] font-extrabold text-orange-600 uppercase tracking-widest mt-1">
-                  Status: {user.role === 'admin' ? 'Admin' : (user.status || 'Seleksi')}
+                  Status: {user?.role === 'admin' ? 'Admin' : (user?.status || 'Seleksi')}
                 </span>
               </div>
               <button onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} className="nav-logout-btn">Keluar</button>
