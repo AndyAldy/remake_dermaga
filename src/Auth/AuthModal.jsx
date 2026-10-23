@@ -1,81 +1,110 @@
 import React, { useState } from 'react';
 import FadeIn from '../components/FadeIn';
+import { supabase } from '../supabase'; // Hubungkan ke konfigurasi supabase.js
 import '../styles/AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
   const [mode, setMode] = useState(initialMode);
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState(''); // Berfungsi sebagai Email
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [isLoadingOTP, setIsLoadingOTP] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   if (!isOpen) return null;
 
   const toggleMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
     setOtpSent(false); setOtpCode(''); setShowPassword(false);
-    setUsername(''); setPassword('');
+    setUsername(''); setPassword(''); setName('');
   };
 
+  // 1. KIRIM OTP / SIGN UP AWAL MENGGUNAKAN SUPABASE AUTH
   const handleSendOTP = async () => {
     if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
-    setIsLoadingOTP(true);
+    setIsLoading(true);
+    
     try {
-      const response = await fetch('http://localhost:5000/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: username })
+      // Supabase mengirimkan Magic Link / OTP ke email pengguna
+      const { error } = await supabase.auth.signInWithOtp({
+        email: username,
+        options: {
+          data: { nama_lengkap: name } // Menyimpan nama lengkap ke metadata user
+        }
       });
-      const data = await response.json();
-      if (response.ok) {
-        alert("Kode OTP terkirim!");
-        setOtpSent(true);
-      } else alert(data.error);
-    } catch (error) { alert("Server Error."); } finally { setIsLoadingOTP(false); }
+
+      if (error) throw error;
+
+      alert("Kode verifikasi/OTP telah dikirim ke email Anda. Cek kotak masuk/spam!");
+      setOtpSent(true);
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Gagal mengirim OTP.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-const handleSubmit = async (e) => {
+  // 2. PROSES UTAMA (LOGIN ATAU VERIFIKASI OTP REGISTRASI)
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (mode === 'register' && (!otpSent || otpCode.length < 4)) {
-      return alert("Silakan selesaikan pengisian OTP terlebih dahulu!");
-    }
-    
-    const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-    const payload = mode === 'login' ? { username, password } : { username, password, nama_lengkap: name, otp: otpCode };
+    setIsLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await response.json();
+      if (mode === 'login') {
+        // --- LOGIKA LOGIN ---
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: username,
+          password: password,
+        });
 
-      if (response.ok) {
-        if (mode === 'login') {
-          // PAKSA beri nilai 'seleksi' jika data dari database ternyata kosong
-          onAuthSuccess({
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            role: data.role,
-            status: data.status || 'seleksi'
-          });
-        } else {
-          // Logika sukses registrasi dipisah agar toggleMode() berjalan lancar
-          alert('Pendaftaran Berhasil! Email telah terverifikasi. Silakan masuk.');
-          toggleMode();
-        }
+        if (error) throw error;
+
+        // Ambil data tambahan dari tabel 'users' jika ada, atau gunakan data auth
+        const user = data.user;
+        onAuthSuccess({
+          id: user.id,
+          name: user.user_metadata?.nama_lengkap || user.email,
+          email: user.email,
+          role: user.user_metadata?.role || 'peserta',
+          status: user.user_metadata?.status_akun || 'seleksi'
+        });
+
       } else {
-        alert(data.error);
+        // --- LOGIKA VERIFIKASI OTP & REGISTRASI ---
+        if (!otpSent || !otpCode) {
+          setIsLoading(false);
+          return alert("Silakan masukkan kode OTP yang dikirim ke email Anda!");
+        }
+
+        // Verifikasi token OTP dengan Supabase
+        const { data, error } = await supabase.auth.verifyOtp({
+          email: username,
+          token: otpCode,
+          type: 'email'
+        });
+
+        if (error) throw error;
+
+        // Setelah email terverifikasi, update password pengguna
+        const { error: updateError } = await supabase.auth.updateUser({
+          password: password,
+          data: { nama_lengkap: name, role: 'peserta', status_akun: 'seleksi' }
+        });
+
+        if (updateError) throw updateError;
+
+        alert('Pendaftaran Berhasil! Akun Anda telah aktif. Silakan masuk.');
+        toggleMode();
       }
-    } catch (error) { 
-      alert('Terjadi kesalahan. Pastikan Server Backend menyala.'); 
+    } catch (error) {
+      console.error(error);
+      alert(error.message || 'Terjadi kesalahan sistem.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -88,7 +117,7 @@ const handleSubmit = async (e) => {
           <div className="auth-content">
             <div className="auth-header">
               <h2 className="auth-title">{mode === 'login' ? 'Masuk' : 'Daftar Akun'}</h2>
-              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun Anda.' : 'Verifikasi email Anda.'}</p>
+              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun terdaftar Anda.' : 'Verifikasi email dengan OTP.'}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">
@@ -100,12 +129,12 @@ const handleSubmit = async (e) => {
               )}
               
               <div>
-                <label className="auth-label">{mode === 'login' ? 'Username / Email' : 'Alamat Email Aktif'}</label>
+                <label className="auth-label">Alamat Email Aktif</label>
                 <div className="auth-input-group">
-                  <input type={mode === 'register' ? "email" : "text"} required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="nama@email.com" />
-                  {mode === 'register' && (
-                    <button type="button" onClick={handleSendOTP} disabled={isLoadingOTP} className="auth-btn-otp">
-                      {isLoadingOTP ? 'Mengirim...' : (otpSent ? 'Kirim Ulang' : 'Kirim OTP')}
+                  <input type="email" required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="nama@email.com" />
+                  {mode === 'register' && !otpSent && (
+                    <button type="button" onClick={handleSendOTP} disabled={isLoading} className="auth-btn-otp">
+                      {isLoading ? 'Mengirim...' : 'Kirim OTP'}
                     </button>
                   )}
                 </div>
@@ -114,36 +143,36 @@ const handleSubmit = async (e) => {
               {mode === 'register' && otpSent && (
                 <FadeIn direction="up">
                   <div className="auth-otp-box">
-                    <label className="auth-otp-label">Masukkan Kode OTP</label>
-                    <input type="text" required value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="auth-otp-input" placeholder="XXXX" maxLength="4" />
+                    <label className="auth-otp-label">Masukkan Kode OTP dari Email</label>
+                    <input type="text" required value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="auth-otp-input" placeholder="Masukkan token OTP" />
                   </div>
                 </FadeIn>
               )}
 
               <div>
                 <label className="auth-label">Kata Sandi</label>
-<div className="auth-pwd-wrapper">
-  <input 
-    type={showPassword ? "text" : "password"} 
-    required 
-    value={password} 
-    onChange={(e) => setPassword(e.target.value)} 
-    className="input-field pr-12" 
-    placeholder="••••••••" 
-  />
-  <button 
-    type="button" 
-    onClick={() => setShowPassword(!showPassword)} 
-    className="auth-pwd-toggle"
-    title={showPassword ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
-  >
-    {showPassword ? "🙈" : "🙉"}
-  </button>
-</div>
+                <div className="auth-pwd-wrapper">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    required 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    className="input-field pr-12" 
+                    placeholder="••••••••" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)} 
+                    className="auth-pwd-toggle"
+                    title={showPassword ? "Sembunyikan Sandi" : "Tampilkan Sandi"}
+                  >
+                    {showPassword ? "🙈" : "🙉"}
+                  </button>
+                </div>
               </div>
 
-              <button type="submit" className="btn-primary">
-                {mode === 'login' ? 'Masuk' : 'Daftar Sekarang'}
+              <button type="submit" disabled={isLoading} className="btn-primary">
+                {isLoading ? 'Memproses...' : (mode === 'login' ? 'Masuk' : 'Verifikasi & Daftar')}
               </button>
             </form>
             
