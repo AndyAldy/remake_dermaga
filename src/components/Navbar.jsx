@@ -8,7 +8,7 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
     <nav className="nav-bar">
       <div className="nav-container">
         <div className="nav-logo-wrap">
-          <div className="nav-logo-text">BPS<span className="text-orange-500">.</span></div>
+          <div className="nav-logo-text">DERMAGA<span className="text-orange-500">.</span></div>
           <div className="nav-subtitle">
             <p className="text-sm font-bold text-slate-700 leading-none">BPS</p>
             <p className="text-xs text-slate-500">Kota Semarang</p>

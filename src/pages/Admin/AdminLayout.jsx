@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import DashboardView from './DashboardView';
 import PendaftarView from './PendaftarView';
-import '../../styles/Admin.css'; // <-- Import CSS Admin
+import '../../styles/Admin.css'; 
 
 const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData }) => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
@@ -10,7 +10,7 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
     <div className="admin-layout">
       <aside className="admin-sidebar">
         <div className="p-6 border-b border-slate-700">
-          <div className="font-extrabold text-2xl text-white">SIMBA Admin</div>
+          <div className="font-extrabold text-2xl text-white">DERMAGA Admin</div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <button onClick={() => setActiveMenu('dashboard')} className={`admin-menu-btn ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Beranda</button>
