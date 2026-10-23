@@ -1,20 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const allowedOrigins = [
-  'https://remakedermaga.vercel.app/', // Ganti dengan URL Vercel kamu
-  'http://localhost:5173' // Default port Vite
-];
 const mysql = require('mysql2/promise');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer'); // PUSTAKA BARU
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const nodemailer = require('nodemailer');
 const { createClient } = require('@supabase/supabase-js');
-const multer = require('multer'); // Tetap butuh multer untuk menangkap file dari frontend
 
 const app = express();
 
@@ -24,30 +17,25 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = [
+  'https://remakedermaga.vercel.app', 
+  'http://localhost:5173'
+];
 
-// Konfigurasi Multer untuk menyimpan file di Memory (RAM sementara), BUKAN di folder lokal
-const upload = multer({ storage: multer.memoryStorage() });
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+}));
+app.use(express.json());
 
 const dbConfig = { host: 'localhost', user: 'root', password: '', database: 'dermaga_bps' };
 
-
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = './uploads';
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-        cb(null, dir);
-    },
-    filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_')); }
-});
-const uploads = multer({ storage: storage });
-
-// ==========================================
-// KONFIGURASI EMAIL (NODEMAILER) & MEMORI OTP
-// ==========================================
 const otpStore = new Map(); // Menyimpan OTP sementara
 
 const transporter = nodemailer.createTransport({
@@ -210,28 +198,52 @@ app.post('/api/pendaftar', upload.fields([
         const { user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id } = req.body;
         const connection = await mysql.createConnection(dbConfig);
 
+        // 1. Cek NIM Duplikat
         const [cekNim] = await connection.execute('SELECT id FROM pendaftaran WHERE nim_nisn = ?', [nim_nisn]);
         if (cekNim.length > 0) {
             connection.end();
-            // Hapus kedua file jika ditolak karena NIM duplikat
-            if (req.files['berkas_pdf']) fs.unlinkSync(req.files['berkas_pdf'][0].path);
-            if (req.files['berkas_cv']) fs.unlinkSync(req.files['berkas_cv'][0].path);
             return res.status(400).json({ error: 'NIM / NISN sudah terdaftar!' });
         }
 
-        const filenamePdf = req.files['berkas_pdf'][0].filename;
-        const filenameCv = req.files['berkas_cv'][0].filename;
+        // 2. Upload File PDF ke Supabase Bucket
+        let pdfUrl = null;
+        if (req.files['berkas_pdf']) {
+            const pdfFile = req.files['berkas_pdf'][0];
+            const pdfName = `${Date.now()}-${pdfFile.originalname.replace(/\s+/g, '_')}`;
+            
+            const { error: uploadError } = await supabase.storage
+                .from('berkas_pendaftar') // PASTIKAN BUCKET INI ADA DI SUPABASE
+                .upload(pdfName, pdfFile.buffer, { contentType: pdfFile.mimetype });
+            
+            if (uploadError) throw uploadError;
+            pdfUrl = supabase.storage.from('berkas_pendaftar').getPublicUrl(pdfName).data.publicUrl;
+        }
 
+        // 3. Upload File CV ke Supabase Bucket (Jika ada)
+        let cvUrl = null;
+        if (req.files['berkas_cv']) {
+            const cvFile = req.files['berkas_cv'][0];
+            const cvName = `${Date.now()}-${cvFile.originalname.replace(/\s+/g, '_')}`;
+            
+            const { error: uploadError2 } = await supabase.storage
+                .from('berkas_pendaftar') 
+                .upload(cvName, cvFile.buffer, { contentType: cvFile.mimetype });
+            
+            if (uploadError2) throw uploadError2;
+            cvUrl = supabase.storage.from('berkas_pendaftar').getPublicUrl(cvName).data.publicUrl;
+        }
+
+        // 4. Simpan URL ke Database MySQL
+        // Pastikan kolom berkas_pdf dan berkas_cv di tabel MySQL-mu tipenya TEXT atau VARCHAR(255) agar muat menyimpan URL panjang
         await connection.execute(
             'INSERT INTO pendaftaran (user_id, nama_peserta, nim_nisn, asal_sekolah_kampus, tanggal_mulai, tanggal_akhir, divisi_id, berkas_pdf, berkas_cv, status_seleksi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id, filenamePdf, filenameCv, 'pending']
+            [user_id, nama_peserta, nim_nisn, asal, tanggal_mulai, tanggal_akhir, divisi_id, pdfUrl, cvUrl, 'pending']
         );
         connection.end();
         res.json({ success: true, message: 'Berkas berhasil dikirim!' });
 
     } catch (error) {
-        if (req.files && req.files['berkas_pdf']) fs.unlinkSync(req.files['berkas_pdf'][0].path);
-        if (req.files && req.files['berkas_cv']) fs.unlinkSync(req.files['berkas_cv'][0].path);
+        console.error(error);
         res.status(500).json({ error: 'Gagal mengirim berkas.' });
     }
 });
