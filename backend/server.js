@@ -10,19 +10,25 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const nodemailer = require('nodemailer'); // PUSTAKA BARU
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+const multer = require('multer'); // Tetap butuh multer untuk menangkap file dari frontend
 
 const app = express();
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+
+// Inisialisasi Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+app.use(cors());
 app.use(express.json());
+
+// Konfigurasi Multer untuk menyimpan file di Memory (RAM sementara), BUKAN di folder lokal
+const upload = multer({ storage: multer.memoryStorage() });
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const dbConfig = { host: 'localhost', user: 'root', password: '', database: 'dermaga_bps' };
@@ -37,7 +43,7 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_')); }
 });
-const upload = multer({ storage: storage });
+const uploads = multer({ storage: storage });
 
 // ==========================================
 // KONFIGURASI EMAIL (NODEMAILER) & MEMORI OTP
@@ -244,6 +250,52 @@ app.put('/api/admin/terima/:id', async (req, res) => {
         connection.end();
         res.json({ success: true, message: 'Peserta diterima!' });
     } catch (error) { res.status(500).json({ error: 'Gagal menerima peserta.' }); }
+});
+
+app.post('/api/upload', upload.single('file_pdf'), async (req, res) => {
+  try {
+    const file = req.file;
+    const { nama, email } = req.body;
+
+    if (!file) return res.status(400).json({ error: 'File PDF wajib diunggah' });
+
+    // 1. Upload File ke Supabase Storage
+    const fileName = `${Date.now()}-${file.originalname}`;
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('berkas_pendaftar') // Nama bucket di Supabase
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Dapatkan URL publik dari file yang baru diupload
+    const { data: publicUrlData } = supabase.storage
+      .from('berkas_pendaftar')
+      .getPublicUrl(fileName);
+    
+    const fileUrl = publicUrlData.publicUrl;
+
+    // 2. Simpan Data Pendaftar (Teks + URL File) ke Supabase Database
+    const { data: insertData, error: dbError } = await supabase
+      .from('pendaftar') // Nama tabel di database Supabase Anda
+      .insert([
+        { 
+          nama: nama, 
+          email: email, 
+          file_url: fileUrl 
+        }
+      ]);
+
+    if (dbError) throw dbError;
+
+    res.status(200).json({ message: 'Berhasil mendaftar!', url: fileUrl });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Gagal memproses data' });
+  }
 });
 
 
