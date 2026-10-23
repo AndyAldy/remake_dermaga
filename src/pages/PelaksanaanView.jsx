@@ -1,7 +1,44 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import FadeIn from '../components/FadeIn';
+import { supabase } from '../supabase';
 
-const PelaksanaanView = () => {
+const PelaksanaanView = ({ user }) => {
+  // State untuk menyimpan nama divisi pengguna
+  const [userDivisi, setUserDivisi] = useState('Memuat Divisi...');
+
+  // Effect untuk mengambil data divisi dari tabel pendaftaran
+  useEffect(() => {
+    const fetchDivisi = async () => {
+      if (user?.id) {
+        try {
+          // Ambil data pendaftaran milik user beserta nama divisinya
+          const { data, error } = await supabase
+            .from('pendaftaran')
+            .select(`
+              divisi_id,
+              divisi (nama_divisi)
+            `)
+            .eq('user_id', user.id)
+            .single(); // Ambil 1 baris saja
+
+          if (error) throw error;
+
+          // Jika ada data divisinya, tampilkan. Jika tidak, set default
+          if (data && data.divisi) {
+            setUserDivisi(data.divisi.nama_divisi);
+          } else {
+            setUserDivisi('Tidak diketahui');
+          }
+        } catch (err) {
+          console.error("Gagal mengambil data divisi:", err.message);
+          setUserDivisi('Gagal memuat');
+        }
+      }
+    };
+
+    fetchDivisi();
+  }, [user]);
+
   // Susunan menu disesuaikan dengan gambar referensi dan tautan yang diberikan
   const menus = [
     { 
@@ -62,7 +99,8 @@ const PelaksanaanView = () => {
             </div>
             <div className="hidden md:block bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl shadow-sm text-center">
               <p className="text-xs uppercase tracking-wider text-emerald-500">Divisi</p>
-              <p>Pengembangan IT</p>
+              {/* Menampilkan Divisi Dinamis */}
+              <p>{userDivisi}</p>
             </div>
           </div>
         </FadeIn>
