@@ -78,18 +78,39 @@ const App = () => {
     };
   }, []);
 
-  // 3. LOGIKA PEMBAGIAN ROLE (ADMIN VS PESERTA)
-  const handleUserSession = (u) => {
-    // Jika yang login adalah email admin
+const handleUserSession = (u) => {
+    // 1. Cek jika akun Admin
     if (u.email === 'admin@bps.go.id') {
       setUser({ 
         id: u.id, 
         email: u.email, 
         name: 'Administrator', 
         role: 'admin', 
+        status: 'lulus' 
       });
-    } else {
-      // Jika yang login adalah peserta biasa
+    } 
+    // 2. Cek jika akun Demo Pelaksanaan (Otomatis diarahkan ke PelaksanaanView)
+    else if (u.email === 'peserta.lulus@bps.go.id') {
+      setUser({
+        id: u.id,
+        email: u.email,
+        name: 'Budi Peserta Lulus (Demo)',
+        role: 'peserta',
+        status: 'lulus' // Status lulus memaksa masuk ke PelaksanaanView
+      });
+    } 
+    // 3. Cek jika akun Demo Seleksi
+    else if (u.email === 'peserta.seleksi@bps.go.id') {
+      setUser({
+        id: u.id,
+        email: u.email,
+        name: 'Ani Peserta Seleksi (Demo)',
+        role: 'peserta',
+        status: 'seleksi' // Masuk ke SeleksiView
+      });
+    } 
+    // 4. Akun registrasi umum mandiri
+    else {
       setUser({
         id: u.id,
         email: u.email,
