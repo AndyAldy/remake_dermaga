@@ -4,99 +4,127 @@ import Footer from './components/Footer';
 import GuestView from './pages/GuestView';
 import SeleksiView from './pages/SeleksiView';
 import PelaksanaanView from './pages/PelaksanaanView';
-import AuthModal from './Auth/AuthModal';
 import AdminLayout from './pages/Admin/AdminLayout';
+import { supabase } from './supabase';
+import './styles/App.css';
 
-function App() {
-  // FITUR BARU: SAVE STATE SESSION
-  // Membaca memori browser saat web pertama kali dimuat
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('dermaga_session');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
-  
+const App = () => {
+  const [user, setUser] = useState(null);
   const [quotas, setQuotas] = useState([]);
   const [pendaftar, setPendaftar] = useState([]);
-  const [authModal, setAuthModal] = useState({ isOpen: false, mode: 'login' });
+  const [loading, setLoading] = useState(true);
 
-  // FITUR BARU: AUTOSAVE SESSION
-  // Menyimpan data user ke memori browser setiap kali ada perubahan login/logout
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem('dermaga_session', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('dermaga_session');
-    }
-  }, [user]);
-
-  const refreshData = async () => {
+  // 1. FUNGSI UTAMA UNTUK MENARIK SEMUA DATA DARI SUPABASE
+  const fetchData = async () => {
     try {
-      const resQuotas = await fetch('http://localhost:5000/api/quotas');
-      setQuotas(await resQuotas.json());
+      // Ambil data Divisi (Kuota)
+      const { data: qData, error: qError } = await supabase.from('divisi').select('*');
+      if (qError) throw qError;
+      
+      if (qData) {
+        setQuotas(qData.map(item => ({
+          id: item.id,
+          divisi: item.nama_divisi,
+          total: item.total_kuota,
+          terisi: item.terisi || 0
+        })));
+      }
 
-      const resPendaftar = await fetch('http://localhost:5000/api/pendaftar');
-      setPendaftar(await resPendaftar.json());
+      // Ambil data Pendaftar
+      const { data: pData, error: pError } = await supabase.from('pendaftaran').select('*');
+      if (pError) throw pError;
+      
+      if (pData) {
+        setPendaftar(pData);
+      }
     } catch (error) {
-      console.error("Gagal terhubung ke database", error);
+      console.error('Gagal memuat data dari Supabase:', error.message);
     }
   };
 
+  // 2. DETEKSI OTOMATIS SAAT WEB DIBUKA & PANTAU STATUS LOGIN
   useEffect(() => {
-    refreshData();
+    // Tarik data tabel
+    fetchData();
+
+    // Cek apakah ada user yang sudah login sebelumnya (saat di-refresh)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) handleUserSession(session.user);
+      setLoading(false);
+    });
+
+    // Listener jika user melakukan Login / Logout
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        handleUserSession(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const handleOpenAuth = (mode) => setAuthModal({ isOpen: true, mode });
-  const handleCloseAuth = () => setAuthModal({ isOpen: false, mode: 'login' });
-
-  const handleAuthSuccess = (userData) => {
-    setUser(userData);
-    handleCloseAuth();
+  // 3. LOGIKA PEMBAGIAN ROLE (ADMIN VS PESERTA)
+  const handleUserSession = (u) => {
+    // Jika yang login adalah email admin
+    if (u.email === 'admin@bps.go.id') {
+      setUser({ 
+        id: u.id, 
+        email: u.email, 
+        name: 'Administrator', 
+        role: 'admin', 
+      });
+    } else {
+      // Jika yang login adalah peserta biasa
+      setUser({
+        id: u.id,
+        email: u.email,
+        name: u.user_metadata?.nama_lengkap || u.email,
+        role: u.user_metadata?.role || 'peserta',
+        status: u.user_metadata?.status_akun || 'seleksi'
+      });
+    }
   };
 
-  const handleLogout = () => setUser(null);
+  // 4. FUNGSI LOGOUT
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
-  if (user?.role === 'admin') {
-    return (
-      <AdminLayout 
-        user={user} 
-        onLogout={handleLogout} 
-        quotas={quotas} 
-        setQuotas={setQuotas}
-        pendaftar={pendaftar}
-        refreshData={refreshData}
-      />
-    );
+  // Tampilkan layar putih sementara saat mengecek sesi login
+  if (loading) {
+    return <div className="flex h-screen items-center justify-center font-bold text-slate-500">Memuat Sistem...</div>;
   }
 
+  // 5. PENGATURAN TAMPILAN HALAMAN (ROUTING)
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 flex flex-col">
-      <Navbar user={user} onLogout={handleLogout} onOpenAuth={handleOpenAuth} />
-
-<main className="flex-grow w-full">
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      {/* Jika GuestView sudah punya Navbar sendiri, Navbar ini bisa diatur opsional */}
+      <Navbar user={user} onLogout={handleLogout} />
+      
+      <main className="flex-grow">
         {!user ? (
-          <GuestView onOpenAuth={handleOpenAuth} quotas={quotas} />
+          // Jika belum login, tampilkan Beranda (GuestView)
+          <GuestView />
+        ) : user.role === 'admin' ? (
+          // Jika login sebagai Admin, tampilkan Panel Admin
+          <AdminLayout quotas={quotas} pendaftar={pendaftar} refreshData={fetchData} />
         ) : user.status === 'lulus' ? (
-          <PelaksanaanView />
+          // Jika peserta dinyatakan lulus, arahkan ke Pelaksanaan
+          <PelaksanaanView user={user} />
         ) : (
-          <SeleksiView 
-            quotas={quotas} 
-            pendaftar={pendaftar} 
-            user={user}
-            refreshData={refreshData}
-          />
+          // Jika peserta baru mendaftar atau pending, arahkan ke Seleksi
+          <SeleksiView quotas={quotas} pendaftar={pendaftar} user={user} refreshData={fetchData} />
         )}
       </main>
-      
-      <Footer />
 
-      <AuthModal 
-        isOpen={authModal.isOpen} 
-        initialMode={authModal.mode} 
-        onClose={handleCloseAuth} 
-        onAuthSuccess={handleAuthSuccess} 
-      />
+      <Footer />
     </div>
   );
-}
+};
 
 export default App;
