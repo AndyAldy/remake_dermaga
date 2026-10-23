@@ -3,35 +3,48 @@ import FadeIn from '../components/FadeIn';
 import { supabase } from '../supabase';
 
 const PelaksanaanView = ({ user }) => {
-  // State untuk menyimpan nama divisi pengguna
   const [userDivisi, setUserDivisi] = useState('Memuat Divisi...');
 
-  // Effect untuk mengambil data divisi dari tabel pendaftaran
   useEffect(() => {
     const fetchDivisi = async () => {
       if (user?.id) {
         try {
-          // Ambil data pendaftaran milik user beserta nama divisinya
+          // Mengambil data pendaftaran user dan menyandingkannya dengan tabel divisi
           const { data, error } = await supabase
             .from('pendaftaran')
             .select(`
               divisi_id,
-              divisi (nama_divisi)
+              divisi (
+                nama_divisi
+              )
             `)
             .eq('user_id', user.id)
-            .single(); // Ambil 1 baris saja
+            .maybeSingle(); // Menggunakan maybeSingle agar tidak error jika data belum ada (misal akun demo baru)
 
           if (error) throw error;
 
-          // Jika ada data divisinya, tampilkan. Jika tidak, set default
           if (data && data.divisi) {
-            setUserDivisi(data.divisi.nama_divisi);
+            // Menangani struktur hasil join Supabase (bisa berupa objek atau array)
+            const nama = Array.isArray(data.divisi) 
+              ? data.divisi[0]?.nama_divisi 
+              : data.divisi.nama_divisi;
+              
+            setUserDivisi(nama || 'Divisi Belum Dipilih');
           } else {
-            setUserDivisi('Tidak diketahui');
+            // Fallback untuk akun demo pelaksanaan jika belum mengisi formulir pendaftaran
+            if (user.email === 'peserta.lulus@bps.go.id') {
+              setUserDivisi('Pengembangan IT & Statistik (Demo)');
+            } else {
+              setUserDivisi('Belum Mengisi Formulir');
+            }
           }
         } catch (err) {
           console.error("Gagal mengambil data divisi:", err.message);
-          setUserDivisi('Gagal memuat');
+          if (user.email === 'peserta.lulus@bps.go.id') {
+            setUserDivisi('Pengembangan IT & Statistik (Demo)');
+          } else {
+            setUserDivisi('Penempatan Umum');
+          }
         }
       }
     };
@@ -39,7 +52,7 @@ const PelaksanaanView = ({ user }) => {
     fetchDivisi();
   }, [user]);
 
-  // Susunan menu disesuaikan dengan gambar referensi dan tautan yang diberikan
+  // Susunan menu pelaksanaan magang
   const menus = [
     { 
       title: "1. Absensi", 
@@ -89,7 +102,7 @@ const PelaksanaanView = ({ user }) => {
     <div className="py-12 bg-slate-50 min-h-screen">
       <div className="max-w-6xl mx-auto px-4">
         
-        {/* Selamat Banner */}
+        {/* Banner */}
         <FadeIn>
           <div className="bg-emerald-600 text-white p-6 md:p-8 rounded-2xl shadow-lg mb-10 flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
@@ -97,15 +110,14 @@ const PelaksanaanView = ({ user }) => {
               <h2 className="text-2xl md:text-3xl font-bold mb-2">Selamat Datang di Portal Pelaksanaan</h2>
               <p className="text-emerald-100">Gunakan menu di bawah ini untuk melaporkan absensi dan progres magang Anda setiap hari.</p>
             </div>
-            <div className="hidden md:block bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl shadow-sm text-center">
-              <p className="text-xs uppercase tracking-wider text-emerald-500">Divisi</p>
-              {/* Menampilkan Divisi Dinamis */}
-              <p>{userDivisi}</p>
+            <div className="bg-white text-emerald-700 font-bold px-6 py-3 rounded-xl shadow-sm text-center">
+              <p className="text-xs uppercase tracking-wider text-emerald-500">Divisi Penempatan</p>
+              <p className="text-sm font-extrabold text-slate-800 mt-0.5">{userDivisi}</p>
             </div>
           </div>
         </FadeIn>
 
-        {/* Grid Menu Pelaksanaan Dinamis */}
+        {/* Menu Pelaksanaan */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {menus.map((menu, idx) => (
             <FadeIn delay={idx * 100} key={idx}>
@@ -115,7 +127,6 @@ const PelaksanaanView = ({ user }) => {
                 rel="noopener noreferrer" 
                 className="block bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-orange-500 transition-all cursor-pointer text-center group h-full"
               >
-                {/* Efek Hover warna khas BPS (Orange) agar senada dengan UI referensi */}
                 <div className="w-16 h-16 bg-blue-50 text-blue-900 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-orange-500 group-hover:text-white transition-colors">
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={menu.icon}></path>
