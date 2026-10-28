@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import FadeIn from '../components/FadeIn';
-import { supabase } from '../supabase'; // Hubungkan ke konfigurasi supabase.js
+import { supabase } from '../supabase';
 import '../styles/AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
@@ -22,23 +22,23 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     setUsername(''); setPassword(''); setName('');
   };
 
-  // 1. KIRIM OTP / SIGN UP AWAL MENGGUNAKAN SUPABASE AUTH
+  // 1. KIRIM OTP (Minta Supabase mengirim 6-digit angka ke email)
   const handleSendOTP = async () => {
     if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
     setIsLoading(true);
     
     try {
-      // Supabase mengirimkan Magic Link / OTP ke email pengguna
       const { error } = await supabase.auth.signInWithOtp({
         email: username,
         options: {
-          data: { nama_lengkap: name } // Menyimpan nama lengkap ke metadata user
+          shouldCreateUser: true, // Pastikan membuat user baru jika belum ada
+          data: { nama_lengkap: name }
         }
       });
 
       if (error) throw error;
 
-      alert("Kode verifikasi/OTP telah dikirim ke email Anda. Cek kotak masuk/spam!");
+      alert("Kode verifikasi OTP 6-Digit telah dikirim. Silakan cek kotak masuk/spam email Anda!");
       setOtpSent(true);
     } catch (error) {
       console.error(error);
@@ -48,14 +48,14 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     }
   };
 
-  // 2. PROSES UTAMA (LOGIN ATAU VERIFIKASI OTP REGISTRASI)
+  // 2. PROSES UTAMA (LOGIN ATAU VERIFIKASI OTP)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
       if (mode === 'login') {
-        // --- LOGIKA LOGIN ---
+        // --- LOGIKA LOGIN BIASA ---
         const { data, error } = await supabase.auth.signInWithPassword({
           email: username,
           password: password,
@@ -63,7 +63,6 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        // Ambil data tambahan dari tabel 'users' jika ada, atau gunakan data auth
         const user = data.user;
         onAuthSuccess({
           id: user.id,
@@ -74,30 +73,34 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         });
 
       } else {
-        // --- LOGIKA VERIFIKASI OTP & REGISTRASI ---
+        // --- LOGIKA VERIFIKASI KODE 6-DIGIT OTP ---
         if (!otpSent || !otpCode) {
           setIsLoading(false);
-          return alert("Silakan masukkan kode OTP yang dikirim ke email Anda!");
+          return alert("Silakan masukkan kode OTP 6-Digit yang dikirim ke email Anda!");
         }
 
-        // Verifikasi token OTP dengan Supabase
+        // PERBAIKAN KRUSIAL: type harus 'signup' bukan 'email'
         const { data, error } = await supabase.auth.verifyOtp({
           email: username,
           token: otpCode,
-          type: 'email'
+          type: 'signup' 
         });
 
         if (error) throw error;
 
-        // Setelah email terverifikasi, update password pengguna
+        // Setelah OTP benar dan sesi terbuka, kita set password yang diketik user
         const { error: updateError } = await supabase.auth.updateUser({
           password: password,
-          data: { nama_lengkap: name, role: 'peserta', status_akun: 'seleksi' }
+          data: { 
+            nama_lengkap: name, 
+            role: 'peserta', 
+            status_akun: 'seleksi' 
+          }
         });
 
         if (updateError) throw updateError;
 
-        alert('Pendaftaran Berhasil! Akun Anda telah aktif. Silakan masuk.');
+        alert('Pendaftaran Berhasil! Akun Anda telah aktif. Silakan login dengan password yang baru dibuat.');
         toggleMode();
       }
     } catch (error) {
@@ -117,7 +120,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
           <div className="auth-content">
             <div className="auth-header">
               <h2 className="auth-title">{mode === 'login' ? 'Masuk' : 'Daftar Akun'}</h2>
-              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun terdaftar Anda.' : 'Verifikasi email dengan OTP.'}</p>
+              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun terdaftar Anda.' : 'Verifikasi email dengan OTP 6-Digit.'}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">
@@ -143,8 +146,8 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
               {mode === 'register' && otpSent && (
                 <FadeIn direction="up">
                   <div className="auth-otp-box">
-                    <label className="auth-otp-label">Masukkan Kode OTP dari Email</label>
-                    <input type="text" required value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="auth-otp-input" placeholder="Masukkan token OTP" />
+                    <label className="auth-otp-label">Masukkan Kode OTP 6-Digit dari Email</label>
+                    <input type="text" required maxLength="6" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="auth-otp-input text-center text-xl tracking-widest font-bold" placeholder="• • • • • •" />
                   </div>
                 </FadeIn>
               )}

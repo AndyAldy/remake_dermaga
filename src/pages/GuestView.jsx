@@ -12,12 +12,14 @@ const GuestView = ({ onOpenAuth, quotas }) => {
             <div className="hero-badge">PORTAL RESMI</div>
             <h2 className="hero-title">Sistem Informasi Magang <br /><span className="text-orange-400">BPS Kota Semarang</span></h2>
             <p className="text-xl text-blue-100 mb-10">Wadah pendaftaran terpadu program Magang dan PKL bagi Mahasiswa/Siswa SMK.</p>
-            <button onClick={() => onOpenAuth('register')} className="btn-primary w-full sm:w-auto px-8 py-3">Daftar / Buat Akun Sekarang</button>
+            {/* Bagian tombol Daftar Akun / Card Pendaftaran dihilangkan sesuai permintaan */}
           </FadeIn>
         </div>
       </header>
 
-      <section className="pt-16 px-4 bg-slate-50"><QuotaTable quotas={quotas} /></section>
+      <section className="pt-16 px-4 bg-slate-50">
+        <QuotaTable quotas={quotas} />
+      </section>
 
       <section className="alur-section">
         <div className="max-w-6xl mx-auto px-6">

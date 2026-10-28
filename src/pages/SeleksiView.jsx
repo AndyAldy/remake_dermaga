@@ -13,7 +13,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // File States
+  // File States (PDF Max 2MB)
   const [ktmFile, setKtmFile] = useState(null);
   const [ktmError, setKtmError] = useState('');
 
@@ -26,30 +26,38 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const [portoFile, setPortoFile] = useState(null);
   const [portoError, setPortoError] = useState('');
 
-  // Social Media Follow Tracking (IG, FB, TikTok, YouTube)
-  const [followed, setFollowed] = useState({
-    ig: false,
-    fb: false,
-    tt: false,
-    yt: false
-  });
+  // File State khusus Screenshot (Image Max 1MB)
+  const [ssFile, setSsFile] = useState(null);
+  const [ssError, setSsError] = useState('');
 
+  // Social Media Follow Tracking (IG, FB, TikTok, YouTube)
+  const [followed, setFollowed] = useState({ ig: false, fb: false, tt: false, yt: false });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper Validasi File PDF/Gambar max 2MB
-  const handleFileValidation = (e, setFileFunc, setErrorFunc, isPdfOnly = true) => {
+  // Helper Validasi File Dinamis (Bisa atur tipe file dan maksimal ukuran)
+  const handleFileValidation = (e, setFileFunc, setErrorFunc, isPdfOnly = true, maxSize = 2097152) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 2097152) {
-      setErrorFunc('Maksimal ukuran file 2MB!');
+    
+    // Validasi Ukuran File
+    if (file.size > maxSize) {
+      setErrorFunc(`Maksimal ukuran file ${maxSize === 1048576 ? '1MB' : '2MB'}!`);
       setFileFunc(null);
       return;
     }
+    
+    // Validasi Tipe File
     if (isPdfOnly && file.type !== 'application/pdf') {
       setErrorFunc('Format file harus PDF!');
       setFileFunc(null);
       return;
     }
+    if (!isPdfOnly && !file.type.startsWith('image/')) {
+      setErrorFunc('Format file harus Gambar (JPG/PNG)!');
+      setFileFunc(null);
+      return;
+    }
+    
     setErrorFunc('');
     setFileFunc(file);
   };
@@ -63,7 +71,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                      divisiNameLower.includes('komputer') || 
                      divisiNameLower.includes('developer');
 
-  // Handle klik tombol follow medsos (membuka tab baru dan menandai sudah difollow)
+  // Handle klik tombol follow medsos (membuka tab baru dan mencatat sudah diklik)
   const handleFollowAction = (platform, url) => {
     window.open(url, '_blank');
     setFollowed(prev => ({ ...prev, [platform]: true }));
@@ -73,11 +81,11 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!ktmFile || !suratFile || !cvFile || !portoFile || !divisiId) {
-      return alert('Mohon lengkapi semua pilihan divisi dan unggah seluruh berkas wajib!');
+    if (!ktmFile || !suratFile || !cvFile || !portoFile || !ssFile || !divisiId) {
+      return alert('Mohon lengkapi semua pilihan divisi dan unggah seluruh berkas wajib (termasuk screenshot)!');
     }
     if (!allSocialsFollowed) {
-      return alert('Anda wajib mengikuti semua akun media sosial BPS Kota Semarang terlebih dahulu!');
+      return alert('Anda wajib mengklik semua link akun media sosial BPS Kota Semarang terlebih dahulu!');
     }
 
     setIsLoading(true);
@@ -99,6 +107,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
       const suratUrl = await uploadToSupabaseStorage(suratFile);
       const cvUrl = await uploadToSupabaseStorage(cvFile);
       const portoUrl = await uploadToSupabaseStorage(portoFile);
+      const ssUrl = await uploadToSupabaseStorage(ssFile); // Upload Screenshot
 
       // 2. Simpan ke tabel pendaftaran
       const { error: dbError } = await supabase
@@ -116,6 +125,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             berkas_pdf: suratUrl,
             berkas_cv: cvUrl,
             berkas_portofolio: portoUrl,
+            bukti_follow: ssUrl, // Field baru untuk menampung link gambar screenshot
             status_seleksi: 'pending'
           }
         ]);
@@ -195,7 +205,6 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
         </div>
       </div>
 
-      {/* Box Petunjuk & Ketentuan Lampiran Sesuai Panduan BPS */}
       <FadeIn>
         <div className="max-w-4xl mx-auto px-4 mt-6">
           <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-xl shadow-sm">
@@ -263,7 +272,8 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
               <div>
                 <label className="sv-label">1. Unggah KTM / Surat Kuliah Aktif (PDF/Foto, Max 2MB)</label>
                 <label className={`sv-upload ${ktmError ? 'sv-upload-error' : ktmFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileValidation(e, setKtmFile, setKtmError, false)} required />
+                  {/* Parameter maxSize 2MB (2097152 byte), isPdfOnly = false */}
+                  <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileValidation(e, setKtmFile, setKtmError, false, 2097152)} required />
                   <p className="font-bold text-xs truncate">{ktmFile ? ktmFile.name : '📁 Klik untuk Pilih File KTM'}</p>
                   {ktmError && <p className="text-red-500 text-xs mt-1">{ktmError}</p>}
                 </label>
@@ -271,9 +281,10 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
               {/* 2. Surat Pengantar */}
               <div>
-                <label className="sv-label">2. Unggah Surat Pengantar (PDF, Max 2MB)</label>
+                <label className="sv-label">2. Surat Pengantar (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${suratError ? 'sv-upload-error' : suratFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setSuratFile, setSuratError, true)} required />
+                  {/* Parameter maxSize 2MB, isPdfOnly = true */}
+                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setSuratFile, setSuratError, true, 2097152)} required />
                   <p className="font-bold text-xs truncate">{suratFile ? suratFile.name : '📁 Klik untuk Pilih Surat Pengantar'}</p>
                   {suratError && <p className="text-red-500 text-xs mt-1">{suratError}</p>}
                 </label>
@@ -281,9 +292,9 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
               {/* 3. Daftar Riwayat Hidup / CV */}
               <div>
-                <label className="sv-label">3. Unggah Daftar Riwayat Hidup / CV (PDF, Max 2MB)</label>
+                <label className="sv-label">3. Daftar Riwayat Hidup / CV (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${cvError ? 'sv-upload-error' : cvFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setCvFile, setCvError, true)} required />
+                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setCvFile, setCvError, true, 2097152)} required />
                   <p className="font-bold text-xs truncate">{cvFile ? cvFile.name : '📁 Klik untuk Pilih CV'}</p>
                   {cvError && <p className="text-red-500 text-xs mt-1">{cvError}</p>}
                 </label>
@@ -292,10 +303,10 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
               {/* 4. Portofolio (Dinamis Berdasarkan Divisi) */}
               <div>
                 <label className="sv-label">
-                  4. Unggah Portofolio ({isDivisiIT ? 'Mahasiswa TI: Program/Aplikasi' : 'Mahasiswa Non-TI: Infografis/Videografi BPS'}) (PDF, Max 2MB)
+                  4. Portofolio ({isDivisiIT ? 'Mahasiswa TI: Program/Aplikasi' : 'Mahasiswa Non-TI: Infografis/Videografi BPS'}) (PDF, Max 2MB)
                 </label>
                 <label className={`sv-upload ${portoError ? 'sv-upload-error' : portoFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setPortoFile, setPortoError, true)} required />
+                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setPortoFile, setPortoError, true, 2097152)} required />
                   <p className="font-bold text-xs truncate">{portoFile ? portoFile.name : '📁 Klik untuk Pilih Portofolio'}</p>
                   {portoError && <p className="text-red-500 text-xs mt-1">{portoError}</p>}
                 </label>
@@ -304,73 +315,64 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
             {/* Verifikasi Follow Media Sosial BPS */}
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-4">
-              <h4 className="font-bold text-slate-800 mb-2">📲 Verifikasi Follow Media Sosial Resmi BPS Kota Semarang</h4>
-              <p className="text-xs text-slate-500 mb-4">Klik tombol di bawah satu per satu untuk mengikuti akun resmi. Tombol akan berubah menjadi abu-abu (Forbidden) setelah Anda mengikutinya.</p>
+              <h4 className="font-bold text-slate-800 mb-2">📲 Verifikasi Follow & Bukti Screenshot</h4>
+              <p className="text-xs text-slate-500 mb-4">Klik link di bawah satu per satu untuk mengikuti akun resmi (tetap bisa diklik), lalu unggah 1 foto/screenshot bukti follow.</p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                 {/* Instagram */}
                 <button
                   type="button"
-                  disabled={followed.ig}
                   onClick={() => handleFollowAction('ig', 'https://instagram.com/bpskotasemarang')}
-                  className={`py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition ${
-                    followed.ig 
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
-                      : 'bg-pink-600 hover:bg-pink-700 text-white shadow-sm'
-                  }`}
+                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-pink-600 hover:bg-pink-700 text-white shadow-sm"
                 >
                   <span>📷 Instagram (@bpskotasemarang)</span>
-                  <span>{followed.ig ? '✔ Sudah Di-follow' : 'Ikuti ➔'}</span>
+                  <span>{followed.ig ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
                 </button>
 
                 {/* Facebook */}
                 <button
                   type="button"
-                  disabled={followed.fb}
                   onClick={() => handleFollowAction('fb', 'https://facebook.com')}
-                  className={`py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition ${
-                    followed.fb 
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
-                  }`}
+                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                 >
                   <span>📘 Facebook (BPS Kota Semarang)</span>
-                  <span>{followed.fb ? '✔ Sudah Di-follow' : 'Ikuti ➔'}</span>
+                  <span>{followed.fb ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
                 </button>
 
                 {/* TikTok */}
                 <button
                   type="button"
-                  disabled={followed.tt}
                   onClick={() => handleFollowAction('tt', 'https://tiktok.com')}
-                  className={`py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition ${
-                    followed.tt 
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
-                      : 'bg-slate-900 hover:bg-black text-white shadow-sm'
-                  }`}
+                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm"
                 >
                   <span>🎵 TikTok (@bps.kota.semarang)</span>
-                  <span>{followed.tt ? '✔ Sudah Di-follow' : 'Ikuti ➔'}</span>
+                  <span>{followed.tt ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
                 </button>
 
                 {/* YouTube */}
                 <button
                   type="button"
-                  disabled={followed.yt}
                   onClick={() => handleFollowAction('yt', 'https://youtube.com')}
-                  className={`py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition ${
-                    followed.yt 
-                      ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300' 
-                      : 'bg-red-600 hover:bg-red-700 text-white shadow-sm'
-                  }`}
+                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm"
                 >
                   <span>▶ YouTube (@bpskotasemarang8647)</span>
-                  <span>{followed.yt ? '✔ Sudah Di-follow' : 'Ikuti ➔'}</span>
+                  <span>{followed.yt ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
                 </button>
               </div>
 
+              {/* 5. Bukti Screenshot Follow */}
+              <div>
+                <label className="sv-label">5. Unggah Screenshot Bukti Follow (Gambar, Max 1MB)</label>
+                <label className={`sv-upload ${ssError ? 'sv-upload-error' : ssFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
+                  {/* Parameter maxSize 1MB (1048576 byte), isPdfOnly = false */}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setSsFile, setSsError, false, 1048576)} required />
+                  <p className="font-bold text-xs truncate">{ssFile ? ssFile.name : '📷 Klik Pilih Screenshot Gambar'}</p>
+                  {ssError && <p className="text-red-500 text-xs mt-1">{ssError}</p>}
+                </label>
+              </div>
+
               {!allSocialsFollowed && (
-                <p className="text-xs text-amber-600 font-medium mt-3 text-center">⚠ Harap ikuti keempat media sosial di atas agar tombol Kirim Berkas dapat diakses.</p>
+                <p className="text-xs text-amber-600 font-medium mt-4 text-center">⚠ Harap klik keempat link media sosial di atas agar tombol Kirim Berkas dapat diakses.</p>
               )}
             </div>
 
