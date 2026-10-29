@@ -183,7 +183,7 @@ if (myApp) {
                 <h2 className="text-2xl font-bold text-green-600 mb-3">Selamat, Anda Diterima!</h2>
                 <p className="text-slate-600 text-sm mb-6">Berkas Anda telah diverifikasi dan diterima oleh Admin BPS Kota Semarang.</p>
                 {/* Tombol ini bisa disesuaikan jika ingin mengarahkan ke halaman Pelaksanaan */}
-                <button onClick={() => refreshData && refreshData()} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+                <button onClick={() =>{ refreshData && refreshData(); window.location.reload();}} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
                   Masuk ke Halaman Pelaksanaan
                 </button>
               </>
