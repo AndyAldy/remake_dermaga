@@ -10,52 +10,25 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
   const [name, setName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   if (!isOpen) return null;
 
   const toggleMode = () => {
     setMode(mode === 'login' ? 'register' : 'login');
-    setOtpSent(false); setOtpCode(''); setShowPassword(false);
+    setShowPassword(false);
     setUsername(''); setPassword(''); setName('');
   };
 
-  // 1. KIRIM OTP (Minta Supabase mengirim 6-digit angka ke email)
-  const handleSendOTP = async () => {
-    if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
-    setIsLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: username,
-        options: {
-          shouldCreateUser: true, // Pastikan membuat user baru jika belum ada
-          data: { nama_lengkap: name }
-        }
-      });
-
-      if (error) throw error;
-
-      alert("Kode verifikasi OTP 6-Digit telah dikirim. Silakan cek kotak masuk/spam email Anda!");
-      setOtpSent(true);
-    } catch (error) {
-      console.error(error);
-      alert(error.message || "Gagal mengirim OTP.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 2. PROSES UTAMA (LOGIN ATAU VERIFIKASI OTP)
+  // Proses Utama (Login atau Registrasi Langsung)
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
     setIsLoading(true);
 
     try {
       if (mode === 'login') {
-        // --- LOGIKA LOGIN BIASA ---
+        // --- LOGIKA LOGIN ---
         const { data, error } = await supabase.auth.signInWithPassword({
           email: username,
           password: password,
@@ -73,34 +46,22 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         });
 
       } else {
-        // --- LOGIKA VERIFIKASI KODE 6-DIGIT OTP ---
-        if (!otpSent || !otpCode) {
-          setIsLoading(false);
-          return alert("Silakan masukkan kode OTP 6-Digit yang dikirim ke email Anda!");
-        }
-
-        // PERBAIKAN KRUSIAL: type harus 'signup' bukan 'email'
-        const { data, error } = await supabase.auth.verifyOtp({
+        // --- LOGIKA REGISTRASI LANGSUNG (Tanpa OTP manual) ---
+        const { data, error } = await supabase.auth.signUp({
           email: username,
-          token: otpCode,
-          type: 'signup' 
+          password: password,
+          options: {
+            data: { 
+              nama_lengkap: name, 
+              role: 'peserta', 
+              status_akun: 'seleksi' 
+            }
+          }
         });
 
         if (error) throw error;
 
-        // Setelah OTP benar dan sesi terbuka, kita set password yang diketik user
-        const { error: updateError } = await supabase.auth.updateUser({
-          password: password,
-          data: { 
-            nama_lengkap: name, 
-            role: 'peserta', 
-            status_akun: 'seleksi' 
-          }
-        });
-
-        if (updateError) throw updateError;
-
-        alert('Pendaftaran Berhasil! Akun Anda telah aktif. Silakan login dengan password yang baru dibuat.');
+        alert('Pendaftaran Berhasil! Akun Anda telah dibuat. Silakan masuk menggunakan email dan kata sandi Anda.');
         toggleMode();
       }
     } catch (error) {
@@ -120,7 +81,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
           <div className="auth-content">
             <div className="auth-header">
               <h2 className="auth-title">{mode === 'login' ? 'Masuk' : 'Daftar Akun'}</h2>
-              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun terdaftar Anda.' : 'Verifikasi email dengan OTP 6-Digit.'}</p>
+              <p className="auth-subtitle">{mode === 'login' ? 'Gunakan akun terdaftar Anda.' : 'Buat akun baru untuk mulai mendaftar magang.'}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="auth-form">
@@ -133,24 +94,8 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
               
               <div>
                 <label className="auth-label">Alamat Email Aktif</label>
-                <div className="auth-input-group">
-                  <input type="email" required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="nama@email.com" />
-                  {mode === 'register' && !otpSent && (
-                    <button type="button" onClick={handleSendOTP} disabled={isLoading} className="auth-btn-otp">
-                      {isLoading ? 'Mengirim...' : 'Kirim OTP'}
-                    </button>
-                  )}
-                </div>
+                <input type="email" required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="nama@email.com" />
               </div>
-
-              {mode === 'register' && otpSent && (
-                <FadeIn direction="up">
-                  <div className="auth-otp-box">
-                    <label className="auth-otp-label">Masukkan Kode OTP 6-Digit dari Email</label>
-                    <input type="text" required maxLength="6" value={otpCode} onChange={(e) => setOtpCode(e.target.value)} className="auth-otp-input text-center text-xl tracking-widest font-bold" placeholder="• • • • • •" />
-                  </div>
-                </FadeIn>
-              )}
 
               <div>
                 <label className="auth-label">Kata Sandi</label>
@@ -175,7 +120,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
               </div>
 
               <button type="submit" disabled={isLoading} className="btn-primary">
-                {isLoading ? 'Memproses...' : (mode === 'login' ? 'Masuk' : 'Verifikasi & Daftar')}
+                {isLoading ? 'Memproses...' : (mode === 'login' ? 'Masuk' : 'Daftar Sekarang')}
               </button>
             </form>
             
