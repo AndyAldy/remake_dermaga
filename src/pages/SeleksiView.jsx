@@ -310,7 +310,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                 
                 {/* 1. Instagram */}
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => handleFollowAction('ig', 'https://instagram.com/bpskotasemarang')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-pink-600 hover:bg-pink-700 text-white shadow-sm">
+                  <button type="button" onClick={() => handleFollowAction('ig', 'https://www.instagram.com/bpskotasemarang?vrfl=dmRvcHEzYzUzZWli')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-pink-600 hover:bg-pink-700 text-white shadow-sm">
                     <span>📷 Instagram</span><span>{followed.ig ? '✔ Sudah' : 'Ikuti ➔'}</span>
                   </button>
                   <label className={`sv-upload h-auto py-2 px-2 ${igError ? 'sv-upload-error' : igFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -322,7 +322,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
                 {/* 2. Facebook */}
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => handleFollowAction('fb', 'https://facebook.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                  <button type="button" onClick={() => handleFollowAction('fb', 'https://www.facebook.com/share/19ZXZDXPby/')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
                     <span>📘 Facebook</span><span>{followed.fb ? '✔ Sudah' : 'Ikuti ➔'}</span>
                   </button>
                   <label className={`sv-upload h-auto py-2 px-2 ${fbError ? 'sv-upload-error' : fbFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -334,7 +334,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
                 {/* 3. TikTok */}
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => handleFollowAction('tt', 'https://tiktok.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm">
+                  <button type="button" onClick={() => handleFollowAction('tt', 'https://www.tiktok.com/@bps.kota.semarang?_r=1&_t=ZS-9Awv7An1UdK')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm">
                     <span>🎵 TikTok</span><span>{followed.tt ? '✔ Sudah' : 'Ikuti ➔'}</span>
                   </button>
                   <label className={`sv-upload h-auto py-2 px-2 ${ttError ? 'sv-upload-error' : ttFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -346,7 +346,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
                 {/* 4. YouTube */}
                 <div className="flex flex-col gap-2">
-                  <button type="button" onClick={() => handleFollowAction('yt', 'https://youtube.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm">
+                  <button type="button" onClick={() => handleFollowAction('yt', 'https://youtube.com/@bpskotasemarang8647?si=X9zCyF5OO98SqXLP')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm">
                     <span>▶ YouTube</span><span>{followed.yt ? '✔ Sudah' : 'Ikuti ➔'}</span>
                   </button>
                   <label className={`sv-upload h-auto py-2 px-2 ${ytError ? 'sv-upload-error' : ytFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
