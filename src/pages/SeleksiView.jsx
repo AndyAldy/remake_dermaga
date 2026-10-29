@@ -13,40 +13,41 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // File States (PDF Max 2MB)
+  // File States Dokumen (PDF Max 2MB)
   const [ktmFile, setKtmFile] = useState(null);
   const [ktmError, setKtmError] = useState('');
-
   const [suratFile, setSuratFile] = useState(null);
   const [suratError, setSuratError] = useState('');
-
   const [cvFile, setCvFile] = useState(null);
   const [cvError, setCvError] = useState('');
-
   const [portoFile, setPortoFile] = useState(null);
   const [portoError, setPortoError] = useState('');
 
-  // File State khusus Screenshot (Image Max 1MB)
-  const [ssFile, setSsFile] = useState(null);
-  const [ssError, setSsError] = useState('');
+  // File States Khusus 4 Screenshot (Image Max 1MB)
+  const [igFile, setIgFile] = useState(null);
+  const [igError, setIgError] = useState('');
+  const [fbFile, setFbFile] = useState(null);
+  const [fbError, setFbError] = useState('');
+  const [ttFile, setTtFile] = useState(null);
+  const [ttError, setTtError] = useState('');
+  const [ytFile, setYtFile] = useState(null);
+  const [ytError, setYtError] = useState('');
 
-  // Social Media Follow Tracking (IG, FB, TikTok, YouTube)
+  // Social Media Follow Tracking
   const [followed, setFollowed] = useState({ ig: false, fb: false, tt: false, yt: false });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper Validasi File Dinamis (Bisa atur tipe file dan maksimal ukuran)
+  // Helper Validasi File Dinamis
   const handleFileValidation = (e, setFileFunc, setErrorFunc, isPdfOnly = true, maxSize = 2097152) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validasi Ukuran File
     if (file.size > maxSize) {
       setErrorFunc(`Maksimal ukuran file ${maxSize === 1048576 ? '1MB' : '2MB'}!`);
       setFileFunc(null);
       return;
     }
     
-    // Validasi Tipe File
     if (isPdfOnly && file.type !== 'application/pdf') {
       setErrorFunc('Format file harus PDF!');
       setFileFunc(null);
@@ -62,7 +63,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
     setFileFunc(file);
   };
 
-  // Cek apakah divisi yang dipilih termasuk kategori IT / Komputer / Informatika
+  // Cek divisi IT
   const selectedDivisiObj = quotas.find(q => q.id === divisiId);
   const divisiNameLower = selectedDivisiObj ? selectedDivisiObj.divisi.toLowerCase() : '';
   const isDivisiIT = divisiNameLower.includes('it') || 
@@ -71,7 +72,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                      divisiNameLower.includes('komputer') || 
                      divisiNameLower.includes('developer');
 
-  // Handle klik tombol follow medsos (membuka tab baru dan mencatat sudah diklik)
+  // Handle klik follow
   const handleFollowAction = (platform, url) => {
     window.open(url, '_blank');
     setFollowed(prev => ({ ...prev, [platform]: true }));
@@ -81,8 +82,8 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!ktmFile || !suratFile || !cvFile || !portoFile || !ssFile || !divisiId) {
-      return alert('Mohon lengkapi semua pilihan divisi dan unggah seluruh berkas wajib (termasuk screenshot)!');
+    if (!ktmFile || !suratFile || !cvFile || !portoFile || !igFile || !fbFile || !ttFile || !ytFile || !divisiId) {
+      return alert('Mohon lengkapi semua pilihan divisi dan unggah seluruh berkas wajib (termasuk 4 screenshot)!');
     }
     if (!allSocialsFollowed) {
       return alert('Anda wajib mengklik semua link akun media sosial BPS Kota Semarang terlebih dahulu!');
@@ -97,19 +98,22 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
           .from('berkas_pendaftar')
           .upload(fileName, file);
         if (uploadErr) throw uploadErr;
-
         const { data } = supabase.storage.from('berkas_pendaftar').getPublicUrl(fileName);
         return data.publicUrl;
       };
 
-      // 1. Upload semua berkas ke Supabase Storage
+      // 1. Upload semua berkas ke Supabase
       const ktmUrl = await uploadToSupabaseStorage(ktmFile);
       const suratUrl = await uploadToSupabaseStorage(suratFile);
       const cvUrl = await uploadToSupabaseStorage(cvFile);
       const portoUrl = await uploadToSupabaseStorage(portoFile);
-      const ssUrl = await uploadToSupabaseStorage(ssFile); // Upload Screenshot
+      
+      const igUrl = await uploadToSupabaseStorage(igFile);
+      const fbUrl = await uploadToSupabaseStorage(fbFile);
+      const ttUrl = await uploadToSupabaseStorage(ttFile);
+      const ytUrl = await uploadToSupabaseStorage(ytFile);
 
-      // 2. Simpan ke tabel pendaftaran
+      // 2. Simpan ke tabel pendaftaran (Pastikan kolom-kolom ini sudah ada di database)
       const { error: dbError } = await supabase
         .from('pendaftaran')
         .insert([
@@ -125,7 +129,10 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             berkas_pdf: suratUrl,
             berkas_cv: cvUrl,
             berkas_portofolio: portoUrl,
-            bukti_follow: ssUrl, // Field baru untuk menampung link gambar screenshot
+            bukti_ig: igUrl,
+            bukti_fb: fbUrl,
+            bukti_tt: ttUrl,
+            bukti_yt: ytUrl,
             status_seleksi: 'pending'
           }
         ]);
@@ -145,11 +152,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const handleReapply = async () => {
     if (window.confirm("Hapus data pendaftaran sebelumnya dan isi ulang formulir?")) {
       try {
-        const { error } = await supabase
-          .from('pendaftaran')
-          .delete()
-          .eq('id', myApp.id);
-        
+        const { error } = await supabase.from('pendaftaran').delete().eq('id', myApp.id);
         if (error) throw error;
         refreshData();
       } catch (e) {
@@ -212,18 +215,11 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             <ol className="list-decimal list-inside text-sm text-slate-700 space-y-1.5 leading-relaxed">
               <li><b>KTM (Kartu Tanda Mahasiswa)</b> atau Surat Keterangan Kuliah Aktif.</li>
               <li><b>Surat Pengantar</b> dari instansi/kampus/sekolah.</li>
-              <li><b>Formulir Permohonan Magang</b> (<a href="https://docs.google.com/document/d/1-y2Z3eAoS3irhl7XpiPIfg91O862u1YnZGZ9ialcuoU/edit?tab=t.0" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">Unduh Template Dokumen Di Sini</a>).</li>
+              <li><b>Formulir Permohonan Magang</b> (<a href="https://docs.google.com/document/d/1-y2Z3eAoS3irhl7XpiPIfg91O862u1YnZGZ9ialcuoU/edit?tab=t.0" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">Unduh Template</a>).</li>
               <li><b>Daftar Riwayat Hidup (CV)</b>.</li>
-              <li>
-                <b>Portofolio</b> (Contoh template/outline dapat dilihat di <a href="http://s.bps.go.id/CTH_PORTOFOLIO" target="_blank" rel="noreferrer" className="text-blue-600 underline">s.bps.go.id/CTH_PORTOFOLIO</a>). 
-                <br />
-                <span className="text-xs text-slate-500 block ml-4 mt-1">
-                  • <b>Mahasiswa TI:</b> Program atau Aplikasi yang pernah dibuat.<br />
-                  • <b>Mahasiswa Non-TI:</b> Infografis atau videografi dengan data BPS Kota Semarang (sumber: semarangkota.bps.go.id - tabel statistik, berita resmi statistik, publikasi). Outline dapat berpedoman pada medsos BPS Kota Semarang.
-                </span>
-              </li>
-              <li><b>Karya Infografis / Video Grafis / Content Statistik</b> menggunakan data statistik Kota Semarang terbaru bersumber dari BPS Kota Semarang (100% hasil sendiri bukan karya orang lain).</li>
-              <li><b>Bukti Follow Media Sosial BPS Kota Semarang</b> (Wajib memfollow seluruh akun resmi di bawah sebelum mengirim formulir).</li>
+              <li><b>Portofolio</b> (<a href="http://s.bps.go.id/CTH_PORTOFOLIO" target="_blank" rel="noreferrer" className="text-blue-600 underline">s.bps.go.id/CTH_PORTOFOLIO</a>).</li>
+              <li><b>Karya Infografis / Video Grafis / Content Statistik</b>.</li>
+              <li><b>Bukti 4 Screenshot Follow Media Sosial BPS Kota Semarang</b>.</li>
             </ol>
           </div>
         </div>
@@ -266,31 +262,26 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
               </select>
             </div>
 
-            {/* Grid Unggah Berkas Wajib */}
+            {/* Dokumen Utama */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
-              {/* 1. KTM */}
               <div>
                 <label className="sv-label">1. Unggah KTM / Surat Kuliah Aktif (PDF/Foto, Max 2MB)</label>
                 <label className={`sv-upload ${ktmError ? 'sv-upload-error' : ktmFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  {/* Parameter maxSize 2MB (2097152 byte), isPdfOnly = false */}
                   <input type="file" accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileValidation(e, setKtmFile, setKtmError, false, 2097152)} required />
                   <p className="font-bold text-xs truncate">{ktmFile ? ktmFile.name : '📁 Klik untuk Pilih File KTM'}</p>
                   {ktmError && <p className="text-red-500 text-xs mt-1">{ktmError}</p>}
                 </label>
               </div>
 
-              {/* 2. Surat Pengantar */}
               <div>
                 <label className="sv-label">2. Surat Pengantar (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${suratError ? 'sv-upload-error' : suratFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  {/* Parameter maxSize 2MB, isPdfOnly = true */}
                   <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setSuratFile, setSuratError, true, 2097152)} required />
                   <p className="font-bold text-xs truncate">{suratFile ? suratFile.name : '📁 Klik untuk Pilih Surat Pengantar'}</p>
                   {suratError && <p className="text-red-500 text-xs mt-1">{suratError}</p>}
                 </label>
               </div>
 
-              {/* 3. Daftar Riwayat Hidup / CV */}
               <div>
                 <label className="sv-label">3. Daftar Riwayat Hidup / CV (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${cvError ? 'sv-upload-error' : cvFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -300,11 +291,8 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                 </label>
               </div>
 
-              {/* 4. Portofolio (Dinamis Berdasarkan Divisi) */}
               <div>
-                <label className="sv-label">
-                  4. Portofolio ({isDivisiIT ? 'Mahasiswa TI: Program/Aplikasi' : 'Mahasiswa Non-TI: Infografis/Videografi BPS'}) (PDF, Max 2MB)
-                </label>
+                <label className="sv-label">4. Portofolio ({isDivisiIT ? 'Mahasiswa TI' : 'Mahasiswa Non-TI'}) (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${portoError ? 'sv-upload-error' : portoFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
                   <input type="file" accept=".pdf" className="hidden" onChange={(e) => handleFileValidation(e, setPortoFile, setPortoError, true, 2097152)} required />
                   <p className="font-bold text-xs truncate">{portoFile ? portoFile.name : '📁 Klik untuk Pilih Portofolio'}</p>
@@ -316,59 +304,58 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             {/* Verifikasi Follow Media Sosial BPS */}
             <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 mt-4">
               <h4 className="font-bold text-slate-800 mb-2">📲 Verifikasi Follow & Bukti Screenshot</h4>
-              <p className="text-xs text-slate-500 mb-4">Klik link di bawah satu per satu untuk mengikuti akun resmi (tetap bisa diklik), lalu unggah 1 foto/screenshot bukti follow.</p>
+              <p className="text-xs text-slate-500 mb-4">Klik link untuk mengikuti akun resmi, lalu <b>langsung unggah screenshot</b> untuk masing-masing platform.</p>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                {/* Instagram */}
-                <button
-                  type="button"
-                  onClick={() => handleFollowAction('ig', 'https://instagram.com/bpskotasemarang')}
-                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-pink-600 hover:bg-pink-700 text-white shadow-sm"
-                >
-                  <span>📷 Instagram (@bpskotasemarang)</span>
-                  <span>{followed.ig ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
-                </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-5">
+                
+                {/* 1. Instagram */}
+                <div className="flex flex-col gap-2">
+                  <button type="button" onClick={() => handleFollowAction('ig', 'https://instagram.com/bpskotasemarang')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-pink-600 hover:bg-pink-700 text-white shadow-sm">
+                    <span>📷 Instagram</span><span>{followed.ig ? '✔ Sudah' : 'Ikuti ➔'}</span>
+                  </button>
+                  <label className={`sv-upload h-auto py-2 px-2 ${igError ? 'sv-upload-error' : igFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setIgFile, setIgError, false, 1048576)} required />
+                    <p className="font-bold text-[10px] truncate">{igFile ? igFile.name : '+ Upload SS IG'}</p>
+                    {igError && <p className="text-red-500 text-[10px]">{igError}</p>}
+                  </label>
+                </div>
 
-                {/* Facebook */}
-                <button
-                  type="button"
-                  onClick={() => handleFollowAction('fb', 'https://facebook.com')}
-                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                >
-                  <span>📘 Facebook (BPS Kota Semarang)</span>
-                  <span>{followed.fb ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
-                </button>
+                {/* 2. Facebook */}
+                <div className="flex flex-col gap-2">
+                  <button type="button" onClick={() => handleFollowAction('fb', 'https://facebook.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
+                    <span>📘 Facebook</span><span>{followed.fb ? '✔ Sudah' : 'Ikuti ➔'}</span>
+                  </button>
+                  <label className={`sv-upload h-auto py-2 px-2 ${fbError ? 'sv-upload-error' : fbFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setFbFile, setFbError, false, 1048576)} required />
+                    <p className="font-bold text-[10px] truncate">{fbFile ? fbFile.name : '+ Upload SS FB'}</p>
+                    {fbError && <p className="text-red-500 text-[10px]">{fbError}</p>}
+                  </label>
+                </div>
 
-                {/* TikTok */}
-                <button
-                  type="button"
-                  onClick={() => handleFollowAction('tt', 'https://tiktok.com')}
-                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm"
-                >
-                  <span>🎵 TikTok (@bps.kota.semarang)</span>
-                  <span>{followed.tt ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
-                </button>
+                {/* 3. TikTok */}
+                <div className="flex flex-col gap-2">
+                  <button type="button" onClick={() => handleFollowAction('tt', 'https://tiktok.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm">
+                    <span>🎵 TikTok</span><span>{followed.tt ? '✔ Sudah' : 'Ikuti ➔'}</span>
+                  </button>
+                  <label className={`sv-upload h-auto py-2 px-2 ${ttError ? 'sv-upload-error' : ttFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setTtFile, setTtError, false, 1048576)} required />
+                    <p className="font-bold text-[10px] truncate">{ttFile ? ttFile.name : '+ Upload SS TikTok'}</p>
+                    {ttError && <p className="text-red-500 text-[10px]">{ttError}</p>}
+                  </label>
+                </div>
 
-                {/* YouTube */}
-                <button
-                  type="button"
-                  onClick={() => handleFollowAction('yt', 'https://youtube.com')}
-                  className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm"
-                >
-                  <span>▶ YouTube (@bpskotasemarang8647)</span>
-                  <span>{followed.yt ? '✔ Sudah Diklik' : 'Ikuti ➔'}</span>
-                </button>
-              </div>
+                {/* 4. YouTube */}
+                <div className="flex flex-col gap-2">
+                  <button type="button" onClick={() => handleFollowAction('yt', 'https://youtube.com')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm">
+                    <span>▶ YouTube</span><span>{followed.yt ? '✔ Sudah' : 'Ikuti ➔'}</span>
+                  </button>
+                  <label className={`sv-upload h-auto py-2 px-2 ${ytError ? 'sv-upload-error' : ytFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setYtFile, setYtError, false, 1048576)} required />
+                    <p className="font-bold text-[10px] truncate">{ytFile ? ytFile.name : '+ Upload SS YT'}</p>
+                    {ytError && <p className="text-red-500 text-[10px]">{ytError}</p>}
+                  </label>
+                </div>
 
-              {/* 5. Bukti Screenshot Follow */}
-              <div>
-                <label className="sv-label">5. Unggah Screenshot Bukti Follow (Gambar, Max 1MB)</label>
-                <label className={`sv-upload ${ssError ? 'sv-upload-error' : ssFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
-                  {/* Parameter maxSize 1MB (1048576 byte), isPdfOnly = false */}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleFileValidation(e, setSsFile, setSsError, false, 1048576)} required />
-                  <p className="font-bold text-xs truncate">{ssFile ? ssFile.name : '📷 Klik Pilih Screenshot Gambar'}</p>
-                  {ssError && <p className="text-red-500 text-xs mt-1">{ssError}</p>}
-                </label>
               </div>
 
               {!allSocialsFollowed && (
@@ -377,11 +364,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             </div>
 
             <div className="flex justify-end pt-4">
-              <button 
-                type="submit" 
-                disabled={isLoading || !allSocialsFollowed} 
-                className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button type="submit" disabled={isLoading || !allSocialsFollowed} className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isLoading ? 'Mengunggah & Mengirim...' : 'Kirim Berkas Pendaftaran'}
               </button>
             </div>
