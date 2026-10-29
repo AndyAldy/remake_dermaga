@@ -18,14 +18,13 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
         <div className="nav-desktop-menu">
           {!user ? (
             <>
-              {/* Tambahan pengaman pada onOpenAuth agar tidak crash saat di-klik */}
+              {/* Memanggil onOpenAuth dengan parameter yang sesuai */}
               <button onClick={() => onOpenAuth && onOpenAuth('login')} className="nav-btn-login">Masuk</button>
               <button onClick={() => onOpenAuth && onOpenAuth('register')} className="nav-btn-register">Daftar</button>
             </>
           ) : (
             <div className="nav-user-badge">
               <div className="flex flex-col items-end mr-1">
-                {/* DITAMBAHKAN TANDA TANYA (?) PADA PROPERTI USER */}
                 <span className="font-bold text-sm text-blue-900 leading-none">{user?.name}</span>
                 <span className="text-[10px] font-extrabold text-orange-600 uppercase tracking-widest mt-1">
                   Status: {user?.role === 'admin' ? 'Admin' : (user?.status || 'Seleksi')}

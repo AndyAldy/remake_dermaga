@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FadeIn from '../components/FadeIn';
 import { supabase } from '../supabase';
 import '../styles/AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
-  const [mode, setMode] = useState(initialMode);
-  const [username, setUsername] = useState(''); // Berfungsi sebagai Email
+  const [mode, setMode] = useState(initialMode || 'login');
+  const [username, setUsername] = useState(''); 
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Memastikan card yang muncul sesuai dengan tombol Navbar yang diklik
+  useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode || 'login');
+      setUsername('');
+      setPassword('');
+      setName('');
+      setShowPassword(false);
+    }
+  }, [isOpen, initialMode]);
   
   if (!isOpen) return null;
 
@@ -23,14 +34,17 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
   // Proses Utama (Login atau Registrasi)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
+    if (username.includes(' ')) return alert("Username tidak boleh menggunakan spasi!");
     setIsLoading(true);
+
+    // Trik Pseudo-Email: Menggabungkan username dengan domain dummy untuk syarat Supabase Auth
+    const dummyEmail = `${username.toLowerCase()}@dermaga.local`;
 
     try {
       if (mode === 'login') {
         // --- LOGIKA LOGIN ---
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: username,
+          email: dummyEmail, // Menggunakan dummyEmail dari username
           password: password,
         });
 
@@ -38,8 +52,8 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         const user = data.user;
         
-        // Memastikan nama lengkap diambil dari user_metadata (nama saat register)
-        const fullName = user.user_metadata?.nama_lengkap || user.email.split('@')[0];
+        // Memastikan nama lengkap diambil dari user_metadata
+        const fullName = user.user_metadata?.nama_lengkap || user.user_metadata?.display_name || username;
 
         onAuthSuccess({
           id: user.id,
@@ -51,12 +65,13 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
       } else {
         // --- LOGIKA REGISTRASI (Daftar Akun) ---
-        const { data, error } = await supabase.auth.signUp({
-          email: username,
+        const { error } = await supabase.auth.signUp({
+          email: dummyEmail, // Menggunakan dummyEmail dari username
           password: password,
           options: {
             data: { 
-              nama_lengkap: name, // Menyimpan Nama Lengkap ke metadata Supabase
+              display_name: username, // Menyimpan username ke display_name sesuai permintaan
+              nama_lengkap: name,     // Menyimpan Nama Lengkap ke metadata
               role: 'peserta', 
               status_akun: 'seleksi' 
             }
@@ -65,12 +80,13 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        alert('Pendaftaran Berhasil! Silakan klik "Masuk" dan gunakan email serta kata sandi yang baru saja Anda buat.');
+        alert('Pendaftaran Berhasil! Silakan masuk menggunakan username dan kata sandi yang baru saja Anda buat.');
         
-        // Bersihkan form dan pindah kembali ke mode login (TIDAK memanggil onAuthSuccess)
+        // Bersihkan password dan pindah ke mode login (TIDAK memanggil onAuthSuccess)
         setMode('login');
         setPassword('');
         setName('');
+        // Username tidak di-reset agar user tidak perlu mengetik ulang saat login
       }
     } catch (error) {
       console.error(error);
@@ -101,8 +117,9 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
               )}
               
               <div>
-                <label className="auth-label">Alamat Email Aktif</label>
-                <input type="email" required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="nama@email.com" />
+                {/* Label dan Input diganti dari Email menjadi Username */}
+                <label className="auth-label">Username</label>
+                <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="input-field" placeholder="Masukkan username" />
               </div>
 
               <div>
