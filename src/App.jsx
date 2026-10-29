@@ -133,6 +133,7 @@ const handleUserSession = async (u) => {
       // Jika status_seleksi di database bernilai 'diterima', arahkan ke halaman pelaksanaan ('lulus')
       status: (statusAktif === 'diterima' ? 'lulus' : 'seleksi')
     });
+  };
 
   // 4. FUNGSI LOGOUT
   const handleLogout = async () => {
