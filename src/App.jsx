@@ -79,44 +79,41 @@ const App = () => {
   }, []);
 
 const handleUserSession = (u) => {
-    // 1. Cek jika akun Admin
-    if (u.email === 'admin@bps.go.id') {
-      setUser({ 
-        id: u.id, 
-        email: u.email, 
-        name: 'Administrator', 
-        role: 'admin', 
-        status: 'lulus' 
-      });
+    // 1. Ambil email dasar
+    const email = u.email || '';
+
+    // 2. Ambil nama secara cerdas (dukung dari raw Supabase ATAU dari AuthModal)
+    // - display_name (dari username)
+    // - nama_lengkap (dari metadata pendaftaran)
+    // - u.name (lemparan dari AuthModal)
+    // - potongan email sebelum @ sebagai opsi terakhir
+    const fullName = u.user_metadata?.display_name || 
+                     u.user_metadata?.nama_lengkap || 
+                     u.name || 
+                     email.split('@')[0];
+
+    // 3. Ambil role dan status
+    const role = u.user_metadata?.role || u.role || 'peserta';
+    const status = u.user_metadata?.status_akun || u.status || 'seleksi';
+
+    // Pengecekan Akun Demo & Admin
+    if (email === 'admin@bps.go.id') {
+      setUser({ id: u.id, email, name: 'Administrator', role: 'admin', status: 'lulus' });
     } 
-    // 2. Cek jika akun Demo Pelaksanaan (Otomatis diarahkan ke PelaksanaanView)
-    else if (u.email === 'peserta.lulus@bps.go.id') {
-      setUser({
-        id: u.id,
-        email: u.email,
-        name: 'Budi Peserta Lulus (Demo)',
-        role: 'peserta',
-        status: 'lulus' // Status lulus memaksa masuk ke PelaksanaanView
-      });
+    else if (email === 'peserta.lulus@bps.go.id') {
+      setUser({ id: u.id, email, name: 'Budi Peserta Lulus (Demo)', role: 'peserta', status: 'lulus' });
     } 
-    // 3. Cek jika akun Demo Seleksi
-    else if (u.email === 'peserta.seleksi@bps.go.id') {
-      setUser({
-        id: u.id,
-        email: u.email,
-        name: 'Ani Peserta Seleksi (Demo)',
-        role: 'peserta',
-        status: 'seleksi' // Masuk ke SeleksiView
-      });
+    else if (email === 'peserta.seleksi@bps.go.id') {
+      setUser({ id: u.id, email, name: 'Ani Peserta Seleksi (Demo)', role: 'peserta', status: 'seleksi' });
     } 
-    // 4. Akun registrasi umum mandiri
+    // Akun registrasi umum mandiri
     else {
       setUser({
         id: u.id,
-        email: u.email,
-        name: u.user_metadata?.nama_lengkap || u.email,
-        role: u.user_metadata?.role || 'peserta',
-        status: u.user_metadata?.status_akun || 'seleksi'
+        email: email,
+        name: fullName, // Gunakan fullName yang sudah pintar membaca kondisi
+        role: role,
+        status: status
       });
     }
   };
