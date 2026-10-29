@@ -42,6 +42,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         const fallbackName = user.email.split('@')[0];
         const fullName = user.user_metadata?.nama_lengkap || fallbackName;
 
+        // Berhasil login, masuk ke dalam sistem (SeleksiView/Dashboard)
         onAuthSuccess({
           id: user.id,
           name: fullName,
@@ -66,13 +67,12 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        // Setelah sukses mendaftar, arahkan pengguna ke form login dan berikan notifikasi
-        alert('Pendaftaran Berhasil! Silakan masuk menggunakan email dan kata sandi yang baru saja dibuat.');
+        // Setelah sukses mendaftar, beritahu user, lalu tutup modal atau pindah ke mode login
+        alert('Pendaftaran Akun Berhasil! Silakan klik "Masuk" menggunakan email dan kata sandi yang baru saja Anda buat.');
         
-        // Reset form & ubah mode kembali ke login
+        // Pindahkan ke mode login dan bersihkan input password
         setMode('login');
         setPassword('');
-        setOtpCode?.('');
       }
     } catch (error) {
       console.error(error);
