@@ -20,7 +20,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     setUsername(''); setPassword(''); setName('');
   };
 
-  // Proses Utama (Login atau Registrasi Langsung)
+  // Proses Utama (Login atau Registrasi)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.includes('@') || !username.includes('.')) return alert("Email tidak valid!");
@@ -38,11 +38,9 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         const user = data.user;
         
-        // Ambil nama lengkap dari metadata, jika kosong fallback ke nama dari email (huruf sebelum @)
-        const fallbackName = user.email.split('@')[0];
-        const fullName = user.user_metadata?.nama_lengkap || fallbackName;
+        // Memastikan nama lengkap diambil dari user_metadata (nama saat register)
+        const fullName = user.user_metadata?.nama_lengkap || user.email.split('@')[0];
 
-        // Berhasil login, masuk ke dalam sistem (SeleksiView/Dashboard)
         onAuthSuccess({
           id: user.id,
           name: fullName,
@@ -52,13 +50,13 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         });
 
       } else {
-        // --- LOGIKA REGISTRASI ---
+        // --- LOGIKA REGISTRASI (Daftar Akun) ---
         const { data, error } = await supabase.auth.signUp({
           email: username,
           password: password,
           options: {
             data: { 
-              nama_lengkap: name, 
+              nama_lengkap: name, // Menyimpan Nama Lengkap ke metadata Supabase
               role: 'peserta', 
               status_akun: 'seleksi' 
             }
@@ -67,12 +65,12 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        // Setelah sukses mendaftar, beritahu user, lalu tutup modal atau pindah ke mode login
-        alert('Pendaftaran Akun Berhasil! Silakan klik "Masuk" menggunakan email dan kata sandi yang baru saja Anda buat.');
+        alert('Pendaftaran Berhasil! Silakan klik "Masuk" dan gunakan email serta kata sandi yang baru saja Anda buat.');
         
-        // Pindahkan ke mode login dan bersihkan input password
+        // Bersihkan form dan pindah kembali ke mode login (TIDAK memanggil onAuthSuccess)
         setMode('login');
         setPassword('');
+        setName('');
       }
     } catch (error) {
       console.error(error);
