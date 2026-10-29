@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import DashboardView from './DashboardView';
 import PendaftarView from './PendaftarView';
+import KelolaAkunView from './KelolaAkunView'; // <-- Impor komponen baru
 import '../../styles/Admin.css'; 
 
 const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData }) => {
@@ -13,8 +14,25 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
           <div className="font-extrabold text-2xl text-white">DERMAGA Admin</div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <button onClick={() => setActiveMenu('dashboard')} className={`admin-menu-btn ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Beranda</button>
-          <button onClick={() => setActiveMenu('pendaftar')} className={`admin-menu-btn ${activeMenu === 'pendaftar' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Pendaftar</button>
+          <button 
+            onClick={() => setActiveMenu('dashboard')} 
+            className={`admin-menu-btn ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
+          >
+            Beranda
+          </button>
+          <button 
+            onClick={() => setActiveMenu('pendaftar')} 
+            className={`admin-menu-btn ${activeMenu === 'pendaftar' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
+          >
+            Pendaftar
+          </button>
+          {/* Menu Tambahan Pembersihan Akun */}
+          <button 
+            onClick={() => setActiveMenu('kelola_akun')} 
+            className={`admin-menu-btn ${activeMenu === 'kelola_akun' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
+          >
+            Kelola Akun
+          </button>
         </nav>
         <div className="p-4 border-t border-slate-700">
           <button onClick={() => { if(window.confirm("Keluar?")) onLogout(); }} className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded">Logout</button>
@@ -23,6 +41,7 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
       <main className="admin-main">
         {activeMenu === 'dashboard' && <DashboardView user={user} quotas={quotas} setQuotas={setQuotas} />}
         {activeMenu === 'pendaftar' && <PendaftarView pendaftar={pendaftar} quotas={quotas} refreshData={refreshData} />}
+        {activeMenu === 'kelola_akun' && <KelolaAkunView refreshData={refreshData} />}
       </main>
     </div>
   );
