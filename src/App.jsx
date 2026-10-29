@@ -78,7 +78,7 @@ const App = () => {
     };
   }, []);
 
-const handleUserSession = (u) => {
+const handleUserSession = async (u) => {
     // 1. Ambil email dasar
     const email = u.email || '';
 
@@ -88,31 +88,50 @@ const handleUserSession = (u) => {
                      u.name || 
                      email.split('@')[0];
 
-    // 3. Ambil role dan status (PERBAIKAN: Gunakan variabel 'status' yang benar)
+    // 3. Ambil role dasar
     const role = u.user_metadata?.role || u.role || 'peserta';
-    const status = u.user_metadata?.status_akun || u.status || 'seleksi';
+    
+    // Default status awal dari metadata
+    let statusAktif = u.user_metadata?.status_akun || 'seleksi';
 
     // Pengecekan Akun Demo & Admin
     if (email === 'admin@bps.go.id') {
       setUser({ id: u.id, email, name: 'Administrator', role: 'admin', status: 'lulus' });
+      return;
     } 
     else if (email === 'peserta.lulus@bps.go.id') {
       setUser({ id: u.id, email, name: 'Budi Peserta Lulus (Demo)', role: 'peserta', status: 'lulus' });
+      return;
     } 
     else if (email === 'peserta.seleksi@bps.go.id') {
       setUser({ id: u.id, email, name: 'Ani Peserta Seleksi (Demo)', role: 'peserta', status: 'seleksi' });
+      return;
     } 
-    // Akun registrasi umum mandiri
-    else {
-      setUser({
-        id: u.id,
-        email: email,
-        name: fullName, 
-        role: role,
-        // PERBAIKAN: Menggunakan variabel 'status' yang sudah didefinisikan di atas
-        status: (status === 'diterima' ? 'lulus' : status)
-      });
+
+    // UNTUK USER BIASA: Cek kolom 'status_akun' langsung ke tabel 'pendaftaran' di Database Supabase
+    try {
+      const { data: regData } = await supabase
+        .from('pendaftaran')
+        .select('status_akun') // <-- Mengambil kolom status_akun sesuai database Anda
+        .eq('user_id', u.id)
+        .maybeSingle();
+
+      if (regData && regData.status_akun) {
+        statusAktif = regData.status_akun; // Bisa bernilai 'pending', 'diterima', atau 'lulus'
+      }
+    } catch (err) {
+      console.error("Gagal mengecek status akun:", err);
     }
+
+    // Set user ke state aplikasi
+    setUser({
+      id: u.id,
+      email: email,
+      name: fullName, 
+      role: role,
+      // Jika di database status_akun bernilai 'diterima' atau 'lulus', arahkan ke halaman pelaksanaan
+      status: (statusAktif === 'diterima' || statusAktif === 'lulus' ? 'lulus' : statusAktif)
+    });
   };
 
   // 4. FUNGSI LOGOUT
