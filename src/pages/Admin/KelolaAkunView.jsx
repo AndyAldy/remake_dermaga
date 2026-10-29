@@ -10,10 +10,10 @@ const KelolaAkunView = ({ refreshData }) => {
 const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      // UBAH DARI 'pendaftaran' MENJADI 'profiles'
+      // KEMBALIKAN KE TABEL pendaftaran
       const { data, error } = await supabase
-        .from('profiles') 
-        .select('id, email, display_name, role, created_at');
+        .from('pendaftaran') 
+        .select('id, user_id, nama_peserta, nim_nisn, asal_sekolah_kampus, created_at');
       
       if (error) throw error;
       setUsersList(data || []);

@@ -162,7 +162,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
     }
   };
 
-  if (myApp) {
+if (myApp) {
     return (
       <div className="sv-center-wrap">
         <FadeIn>
@@ -175,10 +175,22 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                 <h2 className="text-2xl font-bold mb-2">Sedang Diproses</h2>
                 <p className="text-slate-600">Mohon bersabar, berkas pendaftaran Anda masuk dalam antrean validasi Admin 24/7.</p>
               </>
+            ) : myApp.status_seleksi === 'diterima' ? (
+              <>
+                <div className="sv-icon-success flex justify-center text-green-500 mb-4">
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h2 className="text-2xl font-bold text-green-600 mb-3">Selamat, Anda Diterima!</h2>
+                <p className="text-slate-600 text-sm mb-6">Berkas Anda telah diverifikasi dan diterima oleh Admin BPS Kota Semarang.</p>
+                {/* Tombol ini bisa disesuaikan jika ingin mengarahkan ke halaman Pelaksanaan */}
+                <button onClick={() => window.location.reload()} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
+                  Masuk ke Halaman Pelaksanaan
+                </button>
+              </>
             ) : (
               <>
-                <div className="sv-icon-fail">
-                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <div className="sv-icon-fail flex justify-center text-red-500 mb-4">
+                  <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <h2 className="text-2xl font-bold text-red-600 mb-3">Mohon Maaf, Berkas Anda Ditolak</h2>
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 text-left mx-4">
