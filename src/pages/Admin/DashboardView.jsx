@@ -46,7 +46,7 @@ const DashboardView = ({ user, quotas, refreshData }) => {
           { 
             nama_divisi: newDivisi, 
             total_kuota: parseInt(newKuota),
-            terisi: 0 // Default terisi selalu 0 saat divisi baru dibuat
+            terisi: 0 
           }
         ]);
 
@@ -55,9 +55,38 @@ const DashboardView = ({ user, quotas, refreshData }) => {
       alert('Divisi baru berhasil ditambahkan!');
       setNewDivisi('');
       setNewKuota(1);
-      if (refreshData) refreshData(); // Render ulang layar
+      if (refreshData) refreshData(); 
     } catch (error) {
       alert('Gagal menambah divisi: ' + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fungsi untuk menghapus divisi
+  const handleDeleteDivisi = async (id, namaDivisi, terisi) => {
+    // Peringatan ganda jika divisi sudah ada pesertanya
+    if (terisi > 0) {
+      const forceDelete = window.confirm(`Peringatan: Divisi "${namaDivisi}" sudah terisi ${terisi} peserta! Menghapus divisi ini bisa menyebabkan error pada data peserta terkait.\n\nTetap lanjutkan penghapusan?`);
+      if (!forceDelete) return;
+    } else {
+      const confirmDelete = window.confirm(`Apakah Anda yakin ingin menghapus divisi "${namaDivisi}"?`);
+      if (!confirmDelete) return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('divisi')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      alert(`Divisi "${namaDivisi}" berhasil dihapus.`);
+      if (refreshData) refreshData();
+    } catch (error) {
+      alert('Gagal menghapus divisi: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -117,8 +146,19 @@ const DashboardView = ({ user, quotas, refreshData }) => {
           {quotas?.map((q) => {
             const sisa = q.total - q.terisi;
             return (
-              <div key={q.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                <div>
+              <div key={q.id} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between relative group">
+                
+                {/* Tombol Hapus Divisi */}
+                <button
+                  onClick={() => handleDeleteDivisi(q.id, q.divisi, q.terisi)}
+                  disabled={isLoading}
+                  title="Hapus Divisi"
+                  className="absolute top-4 right-4 text-slate-300 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                >
+                  🗑️
+                </button>
+
+                <div className="pr-6">
                   <h3 className="font-bold text-slate-800 leading-tight mb-2">{q.divisi}</h3>
                   <div className="flex justify-between text-sm text-slate-500 mb-4">
                     <span>Terisi: <b className="text-blue-600">{q.terisi}</b></span>
