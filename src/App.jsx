@@ -109,18 +109,19 @@ const handleUserSession = async (u) => {
     } 
 
     // UNTUK USER BIASA: Cek kolom 'status_akun' langsung ke tabel 'pendaftaran' di Database Supabase
+// UNTUK USER BIASA: Cek kolom 'status_seleksi' langsung ke tabel 'pendaftaran' di Supabase
     try {
       const { data: regData } = await supabase
         .from('pendaftaran')
-        .select('status_akun') // <-- Mengambil kolom status_akun sesuai database Anda
+        .select('status_seleksi') // <-- Mengambil kolom status_seleksi
         .eq('user_id', u.id)
         .maybeSingle();
 
-      if (regData && regData.status_akun) {
-        statusAktif = regData.status_akun; // Bisa bernilai 'pending', 'diterima', atau 'lulus'
+      if (regData && regData.status_seleksi) {
+        statusAktif = regData.status_seleksi; // Bisa bernilai 'pending', 'diterima', atau 'ditolak'
       }
     } catch (err) {
-      console.error("Gagal mengecek status akun:", err);
+      console.error("Gagal mengecek status seleksi:", err);
     }
 
     // Set user ke state aplikasi
@@ -129,10 +130,9 @@ const handleUserSession = async (u) => {
       email: email,
       name: fullName, 
       role: role,
-      // Jika di database status_akun bernilai 'diterima' atau 'lulus', arahkan ke halaman pelaksanaan
-      status: (statusAktif === 'diterima' || statusAktif === 'lulus' ? 'lulus' : statusAktif)
+      // Jika status_seleksi di database bernilai 'diterima', arahkan ke halaman pelaksanaan ('lulus')
+      status: (statusAktif === 'diterima' ? 'lulus' : 'seleksi')
     });
-  };
 
   // 4. FUNGSI LOGOUT
   const handleLogout = async () => {

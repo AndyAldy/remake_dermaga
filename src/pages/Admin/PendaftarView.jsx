@@ -28,10 +28,14 @@ const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
 
     if(window.confirm(`Yakin ingin MENERIMA ${peserta.nama_peserta}?`)) {
       try {
-        const { error: errPendaftar } = await supabase
-          .from('pendaftaran')
-          .update({ status_seleksi: 'diterima' })
-          .eq('id', peserta.id);
+// Di PendaftarView.jsx (fungsi handleTerima)
+const { error: errPendaftar } = await supabase
+  .from('pendaftaran')
+  .update({ 
+    status_seleksi: 'diterima',
+    status_akun: 'lulus' // <-- Tambahkan ini agar sinkron dengan tipe data Enum 'lulus' di database
+  })
+  .eq('id', peserta.id);
           
         if (errPendaftar) throw errPendaftar;
 
