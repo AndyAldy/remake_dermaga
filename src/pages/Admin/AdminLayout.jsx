@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import DashboardView from './DashboardView';
 import PendaftarView from './PendaftarView';
-import KelolaAkunView from './KelolaAkunView'; // <-- Impor komponen baru
+import KelolaAkunView from './KelolaAkunView'; 
+import StorageManagerView from './StorageManagerView'; // <-- Impor komponen StorageManagerView
 import '../../styles/Admin.css'; 
 
 const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData }) => {
@@ -26,22 +27,30 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
           >
             Pendaftar
           </button>
-          {/* Menu Tambahan Pembersihan Akun */}
           <button 
             onClick={() => setActiveMenu('kelola_akun')} 
             className={`admin-menu-btn ${activeMenu === 'kelola_akun' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
           >
             Kelola Akun
           </button>
+          {/* Menu Tambahan Manajemen Storage */}
+          <button 
+            onClick={() => setActiveMenu('storage')} 
+            className={`admin-menu-btn ${activeMenu === 'storage' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
+          >
+            Data Storage
+          </button>
         </nav>
         <div className="p-4 border-t border-slate-700">
-          <button onClick={() => { if(window.confirm("Keluar?")) onLogout(); }} className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded">Logout</button>
+          <button onClick={() => { if(window.confirm("Keluar?")) onLogout(); }} className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded transition">Logout</button>
         </div>
       </aside>
       <main className="admin-main">
-        {activeMenu === 'dashboard' && <DashboardView user={user} quotas={quotas} setQuotas={setQuotas} />}
+        {activeMenu === 'dashboard' && <DashboardView user={user} quotas={quotas} setQuotas={setQuotas} refreshData={refreshData} />}
         {activeMenu === 'pendaftar' && <PendaftarView pendaftar={pendaftar} quotas={quotas} refreshData={refreshData} />}
         {activeMenu === 'kelola_akun' && <KelolaAkunView refreshData={refreshData} />}
+        {/* Render halaman Storage */}
+        {activeMenu === 'storage' && <StorageManagerView />}
       </main>
     </div>
   );
