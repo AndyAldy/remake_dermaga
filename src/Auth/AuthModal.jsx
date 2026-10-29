@@ -118,7 +118,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
   // --- TAHAP 2: PROSES VERIFIKASI OTP (Hanya untuk Registrasi Baru) ---
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if (!otp || otp.length < 6) return setErrorMsg("Masukkan 6 digit kode OTP!");
+    if (!otp || otp.length < 8) return setErrorMsg("Masukkan 8 digit kode OTP!");
     
     setIsLoading(true);
     setErrorMsg('');
@@ -236,7 +236,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
                     type="text" required 
                     value={otp} onChange={(e) => setOtp(e.target.value)} 
                     className="input-field text-center tracking-[0.5em] text-xl font-bold" 
-                    placeholder="000000" maxLength={6} autoComplete="one-time-code"
+                    placeholder="00000000" maxLength={8} autoComplete="one-time-code"
                   />
                 </div>
 
