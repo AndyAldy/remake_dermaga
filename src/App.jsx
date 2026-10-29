@@ -113,7 +113,7 @@ const handleUserSession = (u) => {
         email: email,
         name: fullName, // Gunakan fullName yang sudah pintar membaca kondisi
         role: role,
-        status: status
+        status: (statusAkun === 'diterima' ? 'lulus' : statusAkun)
       });
     }
   };
@@ -150,7 +150,7 @@ return (
         ) : user.role === 'admin' ? (
           // Jika login sebagai Admin, tampilkan Panel Admin
           <AdminLayout quotas={quotas} pendaftar={pendaftar} refreshData={fetchData} />
-        ) : user.status === 'lulus' ? (
+        ) : user.status === 'lulus' || user.status === 'diterima' ? (
           // Jika peserta dinyatakan lulus, arahkan ke Pelaksanaan
           <PelaksanaanView user={user} />
         ) : (
