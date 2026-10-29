@@ -28,14 +28,11 @@ const PendaftarView = ({ pendaftar, quotas, refreshData }) => {
 
     if(window.confirm(`Yakin ingin MENERIMA ${peserta.nama_peserta}?`)) {
       try {
-// Di PendaftarView.jsx (fungsi handleTerima)
-const { error: errPendaftar } = await supabase
-  .from('pendaftaran')
-  .update({ 
-    status_seleksi: 'diterima',
-    status_akun: 'lulus' // <-- Tambahkan ini agar sinkron dengan tipe data Enum 'lulus' di database
-  })
-  .eq('id', peserta.id);
+        // PERBAIKAN: Hanya update status_seleksi karena status_akun bukan nama kolom
+        const { error: errPendaftar } = await supabase
+          .from('pendaftaran')
+          .update({ status_seleksi: 'diterima' })
+          .eq('id', peserta.id);
           
         if (errPendaftar) throw errPendaftar;
 
@@ -63,6 +60,7 @@ const { error: errPendaftar } = await supabase
 
     if (alasanAdmin !== null) {
       try {
+        // PERBAIKAN: Pastikan hanya mengupdate status_seleksi
         const { error } = await supabase
           .from('pendaftaran')
           .update({ 
@@ -104,7 +102,6 @@ const { error: errPendaftar } = await supabase
                   <th className="admin-th">Pilihan Divisi</th>
                   <th className="admin-th">Periode Magang</th> 
                   <th className="admin-th text-center">Berkas Utama</th>
-                  {/* Tambahan Kolom Baru Khusus Sosmed */}
                   <th className="admin-th text-center">Bukti Sosmed</th> 
                   <th className="admin-th text-center">Aksi</th>
                 </tr>
@@ -128,12 +125,13 @@ const { error: errPendaftar } = await supabase
                         <span className="block text-xs text-slate-500">s.d. {formatDate(row.tanggal_akhir)}</span>
                       </td>
 
-                      {/* Berkas Utama (Surat, CV, Porto, dll) */}
+                      {/* BERKAS UTAMA: Ditambahkan tombol KTM dan menggunakan grid agar sejajar rapi */}
                       <td className="px-6 py-4 text-center">
-                        <div className="flex flex-col gap-2 items-center justify-center">
-                          <button onClick={() => handleDownloadPDF(row.berkas_pdf)} className="admin-btn-dl w-full text-[11px] py-1">Surat</button>
-                          {row.berkas_cv && <button onClick={() => handleDownloadPDF(row.berkas_cv)} className="admin-btn-dl w-full text-[11px] py-1">CV</button>}
-                          {row.berkas_portofolio && <button onClick={() => handleDownloadPDF(row.berkas_portofolio)} className="admin-btn-dl w-full text-[11px] py-1">Porto</button>}
+                        <div className="grid grid-cols-2 gap-1 items-center justify-center">
+                          {row.berkas_ktm && <button onClick={() => handleDownloadPDF(row.berkas_ktm)} className="admin-btn-dl w-full text-[10px] py-1">KTM</button>}
+                          <button onClick={() => handleDownloadPDF(row.berkas_pdf)} className="admin-btn-dl w-full text-[10px] py-1">Surat</button>
+                          {row.berkas_cv && <button onClick={() => handleDownloadPDF(row.berkas_cv)} className="admin-btn-dl w-full text-[10px] py-1">CV</button>}
+                          {row.berkas_portofolio && <button onClick={() => handleDownloadPDF(row.berkas_portofolio)} className="admin-btn-dl w-full text-[10px] py-1">Porto</button>}
                         </div>
                       </td>
 
