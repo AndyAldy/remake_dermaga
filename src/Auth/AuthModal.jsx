@@ -37,16 +37,21 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         if (error) throw error;
 
         const user = data.user;
+        
+        // Ambil nama lengkap dari metadata, jika kosong fallback ke nama dari email (huruf sebelum @)
+        const fallbackName = user.email.split('@')[0];
+        const fullName = user.user_metadata?.nama_lengkap || fallbackName;
+
         onAuthSuccess({
           id: user.id,
-          name: user.user_metadata?.nama_lengkap || user.email,
+          name: fullName,
           email: user.email,
           role: user.user_metadata?.role || 'peserta',
           status: user.user_metadata?.status_akun || 'seleksi'
         });
 
       } else {
-        // --- LOGIKA REGISTRASI LANGSUNG (Tanpa OTP manual) ---
+        // --- LOGIKA REGISTRASI ---
         const { data, error } = await supabase.auth.signUp({
           email: username,
           password: password,
@@ -61,8 +66,13 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        alert('Pendaftaran Berhasil! Akun Anda telah dibuat. Silakan masuk menggunakan email dan kata sandi Anda.');
-        toggleMode();
+        // Setelah sukses mendaftar, arahkan pengguna ke form login dan berikan notifikasi
+        alert('Pendaftaran Berhasil! Silakan masuk menggunakan email dan kata sandi yang baru saja dibuat.');
+        
+        // Reset form & ubah mode kembali ke login
+        setMode('login');
+        setPassword('');
+        setOtpCode?.('');
       }
     } catch (error) {
       console.error(error);
