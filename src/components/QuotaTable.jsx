@@ -12,9 +12,9 @@ const QuotaTable = ({ quotas }) => {
             <thead>
               <tr>
                 <th className="quota-th">Divisi Penempatan</th>
-                <th className="quota-th text-center">Total</th>
-                <th className="quota-th text-center">Terisi</th>
-                <th className="quota-th text-center">Status</th>
+                <th className="quota-th text-center">Total Kuota yang tersedia</th>
+                <th className="quota-th text-center">Kuota Magang Terisi</th>
+                <th className="quota-th text-center">Sisa Kuota Magang</th>
               </tr>
             </thead>
             <tbody>
