@@ -25,7 +25,7 @@ const KelolaAkunView = ({ refreshData }) => {
     fetchUsers();
   }, []);
 
-  // Menghapus akun menggunakan RPC delete_user_account
+  // Menghapus SATU akun
   const handleDeleteAccount = async (id, nama, email) => {
     if (window.confirm(`PERINGATAN Keras: Apakah Anda yakin ingin menghapus permanen akun "${nama || email}" dari sistem?`)) {
       try {
@@ -45,25 +45,67 @@ const KelolaAkunView = ({ refreshData }) => {
     }
   };
 
+  // Menghapus SEMUA akun (Fitur Baru)
+  const handleDeleteAllAccounts = async () => {
+    if (usersList.length === 0) return alert("Belum ada akun pendaftar yang tersimpan.");
+    
+    // Verifikasi 2 Lapis untuk mencegah salah klik
+    const confirm1 = window.confirm("🚨 PERINGATAN KRITIS: Anda yakin ingin MENGHAPUS SEMUA AKUN MAHASISWA secara permanen?");
+    if (!confirm1) return;
+    
+    const confirm2 = window.confirm("Tindakan ini TIDAK BISA DIBATALKAN. Seluruh data peserta akan hilang. Lanjutkan?");
+    if (!confirm2) return;
+
+    setIsLoading(true);
+    try {
+      // Loop untuk menghapus setiap akun berdasarkan fungsi RPC yang sudah ada
+      for (const user of usersList) {
+        const { error } = await supabase.rpc('delete_user_account', { 
+          target_user_id: user.id 
+        });
+        if (error) throw error;
+      }
+
+      alert("SUKSES: Seluruh akun pendaftar berhasil dibersihkan dari sistem!");
+      fetchUsers(); 
+      if (refreshData) refreshData(); 
+    } catch (err) {
+      console.error(err);
+      alert(`Terjadi kesalahan saat menghapus semua akun: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 md:p-10">
       <FadeIn>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Pembersihan & Manajemen Akun</h2>
             <p className="text-sm text-slate-500">Kelola semua akun yang terdaftar di aplikasi (meski belum mengisi formulir magang).</p>
           </div>
-          <button 
-            onClick={fetchUsers} 
-            className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-4 rounded-lg transition"
-          >
-            🔄 Muat Ulang Data
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={fetchUsers} 
+              disabled={isLoading}
+              className="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
+            >
+              🔄 Muat Ulang
+            </button>
+            <button 
+              onClick={handleDeleteAllAccounts} 
+              disabled={isLoading || usersList.length === 0}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition shadow-md disabled:opacity-50"
+            >
+              🗑️ Hapus Semua Akun
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           {isLoading ? (
-            <div className="p-8 text-center text-slate-500">Memuat data akun...</div>
+            <div className="p-8 text-center text-slate-500">Memuat data...</div>
           ) : usersList.length === 0 ? (
             <div className="p-8 text-center text-slate-500">Belum ada akun pendaftar yang tersimpan.</div>
           ) : (
@@ -90,13 +132,16 @@ const KelolaAkunView = ({ refreshData }) => {
                           onClick={() => handleDeleteAccount(item.id, item.nama_lengkap, item.email)}
                           className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white text-xs font-bold py-1.5 px-3 rounded transition border border-red-200"
                         >
-                          🗑️ Hapus Akun
+                          Hapus Akun
                         </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <div className="bg-slate-50 p-4 border-t border-slate-200 text-xs text-slate-500 font-bold">
+                Total Akun Pendaftar: {usersList.length}
+              </div>
             </div>
           )}
         </div>

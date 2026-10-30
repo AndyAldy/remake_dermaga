@@ -131,6 +131,12 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     setIsLoading(true);
     setErrorMsg('');
 
+    // Tambahkan validasi ini sebelum blok "try {"
+    if (mode === 'register' && name.trim().length < 3) {
+      setIsLoading(false);
+      return setErrorMsg("Nama Lengkap minimal 3 huruf!");
+    }
+
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         email: email,
@@ -196,8 +202,15 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
                     <label className="auth-label">Nama Lengkap</label>
                     <input 
                       type="text" required 
-                      value={name} onChange={(e) => setName(e.target.value)} 
-                      className="input-field" placeholder="Sesuai KTP/KTM" 
+                      value={name} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        // Regex: Hanya menerima huruf (A-Z, a-z) dan Spasi
+                        if (/^[a-zA-Z\s]*$/.test(val)) {
+                          setName(val);
+                        }
+                      }} 
+                      className="input-field" placeholder="Sesuai KTP/KTM"
                     />
                   </div>
                 )}
