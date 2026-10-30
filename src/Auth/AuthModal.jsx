@@ -88,22 +88,9 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         });
 
       } else {
-        const { error: checkError } = await supabase.auth.signInWithOtp({
-           email: email,
-           options: {
-             shouldCreateUser: false // Jangan buat user baru
-           }
-        });
+        // --- LOGIKA REGISTRASI (Daftar Akun + Buat Password -> Kirim OTP) ---
         
-        // Jika TIDAK ADA ERROR saat dummy login (artinya email itu BENAR ADA), tolak pendaftaran.
-        if (!checkError) {
-             throw new Error("Email ini sudah terdaftar. Silakan gunakan menu 'Masuk' atau gunakan email lain.");
-        }
-        
-        // Jika errornya "Signups not allowed" atau "User not found" (tergantung versi Supabase),
-        // berarti emailnya belum terdaftar, dan kita bisa Lanjut Sign Up.
-        
-
+        // Panggil fungsi signUp langsung tanpa dummy login
         const { data, error } = await supabase.auth.signUp({
           email: email,
           password: password,
@@ -118,7 +105,13 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        // Jika berhasil, Supabase akan mengirimkan OTP (karena 'Confirm email' dinyalakan di dashboard)
+        // CEK DUPLIKASI EMAIL SECARA AMAN (Cara Resmi Supabase)
+        // Jika email sudah terdaftar, data.user.identities akan berupa array kosong
+        if (data?.user?.identities?.length === 0) {
+          throw new Error("Email ini sudah terdaftar. Silakan gunakan menu 'Masuk' atau gunakan email lain.");
+        }
+
+        // Jika berhasil, Supabase akan mengirimkan OTP 8 digit
         setIsOtpSent(true);
         alert('Pendaftaran berhasil! Kode OTP telah dikirim ke email Anda.');
       }
@@ -214,7 +207,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
                   <input 
                     type="email" required 
                     value={email} onChange={(e) => setEmail(e.target.value)} 
-                    className="input-field" placeholder="nama@gmail.com" 
+                    className="input-field" placeholder="nama@email.com" 
                   />
                 </div>
 
