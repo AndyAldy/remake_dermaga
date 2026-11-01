@@ -164,9 +164,15 @@ return (
       <main className="flex-grow">        {!user ? (
           // Jika belum login, tampilkan Beranda (GuestView)
           <GuestView quotas={quotas} />
-        ) : user.role === 'admin' ? (
+) : user.role === 'admin' ? (
           // Jika login sebagai Admin, tampilkan Panel Admin
-          <AdminLayout quotas={quotas} pendaftar={pendaftar} refreshData={fetchData} />
+          <AdminLayout 
+            user={user} 
+            onLogout={handleLogout} 
+            quotas={quotas} 
+            pendaftar={pendaftar} 
+            refreshData={fetchData} 
+          />
         ) : user.status === 'lulus' || user.status === 'diterima' ? (
           // Jika peserta dinyatakan lulus, arahkan ke Pelaksanaan
           <PelaksanaanView user={user} />
