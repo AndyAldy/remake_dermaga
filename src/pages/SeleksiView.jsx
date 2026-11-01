@@ -6,14 +6,14 @@ import '../styles/SeleksiView.css';
 
 const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const myApp = pendaftar.find(p => p.user_id === user?.id);
-
+  
   const [nim, setNim] = useState('');
   const [asal, setAsal] = useState('');
+  const [noTelp, setNoTelp] = useState(''); // Fitur Tambahan: No Telp
   const [divisiId, setDivisiId] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   
-  // File States Dokumen (PDF Max 2MB)
   const [ktmFile, setKtmFile] = useState(null);
   const [ktmError, setKtmError] = useState('');
   const [suratFile, setSuratFile] = useState(null);
@@ -22,8 +22,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const [cvError, setCvError] = useState('');
   const [portoFile, setPortoFile] = useState(null);
   const [portoError, setPortoError] = useState('');
-
-  // File States Khusus 4 Screenshot (Image Max 1MB)
+  
   const [igFile, setIgFile] = useState(null);
   const [igError, setIgError] = useState('');
   const [fbFile, setFbFile] = useState(null);
@@ -32,22 +31,18 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
   const [ttError, setTtError] = useState('');
   const [ytFile, setYtFile] = useState(null);
   const [ytError, setYtError] = useState('');
-
-  // Social Media Follow Tracking
+  
   const [followed, setFollowed] = useState({ ig: false, fb: false, tt: false, yt: false });
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper Validasi File Dinamis
   const handleFileValidation = (e, setFileFunc, setErrorFunc, isPdfOnly = true, maxSize = 2097152) => {
     const file = e.target.files[0];
     if (!file) return;
-    
     if (file.size > maxSize) {
       setErrorFunc(`Maksimal ukuran file ${maxSize === 1048576 ? '1MB' : '2MB'}!`);
       setFileFunc(null);
       return;
     }
-    
     if (isPdfOnly && file.type !== 'application/pdf') {
       setErrorFunc('Format file harus PDF!');
       setFileFunc(null);
@@ -58,12 +53,10 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
       setFileFunc(null);
       return;
     }
-    
     setErrorFunc('');
     setFileFunc(file);
   };
 
-  // Cek divisi IT
   const selectedDivisiObj = quotas.find(q => q.id === divisiId);
   const divisiNameLower = selectedDivisiObj ? selectedDivisiObj.divisi.toLowerCase() : '';
   const isDivisiIT = divisiNameLower.includes('it') || 
@@ -72,7 +65,6 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
                      divisiNameLower.includes('komputer') || 
                      divisiNameLower.includes('developer');
 
-  // Handle klik follow
   const handleFollowAction = (platform, url) => {
     window.open(url, '_blank');
     setFollowed(prev => ({ ...prev, [platform]: true }));
@@ -82,38 +74,31 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!ktmFile || !suratFile || !cvFile || !portoFile || !igFile || !fbFile || !ttFile || !ytFile || !divisiId) {
-      return alert('Mohon lengkapi semua pilihan divisi dan unggah seluruh berkas wajib (termasuk 4 screenshot)!');
+    if (!ktmFile || !suratFile || !cvFile || !portoFile || !igFile || !fbFile || !ttFile || !ytFile || !divisiId || !noTelp) {
+      return alert('Mohon lengkapi semua isian dan unggah seluruh berkas wajib!');
     }
     if (!allSocialsFollowed) {
       return alert('Anda wajib mengklik semua link akun media sosial BPS Kota Semarang terlebih dahulu!');
     }
-
     setIsLoading(true);
-
     try {
       const uploadToSupabaseStorage = async (file) => {
         const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('berkas_pendaftar')
-          .upload(fileName, file);
+        const { error: uploadErr } = await supabase.storage.from('berkas_pendaftar').upload(fileName, file);
         if (uploadErr) throw uploadErr;
         const { data } = supabase.storage.from('berkas_pendaftar').getPublicUrl(fileName);
         return data.publicUrl;
       };
 
-      // 1. Upload semua berkas ke Supabase
       const ktmUrl = await uploadToSupabaseStorage(ktmFile);
       const suratUrl = await uploadToSupabaseStorage(suratFile);
       const cvUrl = await uploadToSupabaseStorage(cvFile);
       const portoUrl = await uploadToSupabaseStorage(portoFile);
-      
       const igUrl = await uploadToSupabaseStorage(igFile);
       const fbUrl = await uploadToSupabaseStorage(fbFile);
       const ttUrl = await uploadToSupabaseStorage(ttFile);
       const ytUrl = await uploadToSupabaseStorage(ytFile);
 
-      // 2. Simpan ke tabel pendaftaran (Pastikan kolom-kolom ini sudah ada di database)
       const { error: dbError } = await supabase
         .from('pendaftaran')
         .insert([
@@ -121,6 +106,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             user_id: user.id,
             nama_peserta: user.name,
             nim_nisn: nim,
+            no_telp: noTelp, // Insert kolom no_telp
             asal_sekolah_kampus: asal,
             tanggal_mulai: startDate,
             tanggal_akhir: endDate,
@@ -136,9 +122,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
             status_seleksi: 'pending'
           }
         ]);
-
       if (dbError) throw dbError;
-
       alert("Pendaftaran Berhasil Dikirim dan Masuk Antrean Verifikasi!");
       refreshData();
     } catch (err) {
@@ -162,7 +146,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
     }
   };
 
-if (myApp) {
+  if (myApp) {
     return (
       <div className="sv-center-wrap">
         <FadeIn>
@@ -182,7 +166,6 @@ if (myApp) {
                 </div>
                 <h2 className="text-2xl font-bold text-green-600 mb-3">Selamat, Anda Diterima!</h2>
                 <p className="text-slate-600 text-sm mb-6">Berkas Anda telah diverifikasi dan diterima oleh Admin BPS Kota Semarang.</p>
-                {/* Tombol ini bisa disesuaikan jika ingin mengarahkan ke halaman Pelaksanaan */}
                 <button onClick={() =>{ refreshData && refreshData(); window.location.reload();}} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-all">
                   Masuk ke Halaman Pelaksanaan
                 </button>
@@ -244,34 +227,40 @@ if (myApp) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="sv-label">Nama Lengkap (Sesuai Akun)</label>
-                <input type="text" value={user?.name || ''} readOnly className="input-field bg-slate-100 cursor-not-allowed" />
+                <input type="text" value={user?.name || ''} readOnly className="input-field bg-slate-100 cursor-not-allowed text-slate-900 font-bold" />
               </div>
               <div>
                 <label className="sv-label">NIM / NISN</label>
-                <input type="text" value={nim} onChange={(e)=>setNim(e.target.value)} required className="input-field" placeholder="Masukkan NIM atau NISN" />
+                <input type="text" value={nim} onChange={(e)=>setNim(e.target.value)} required className="input-field text-slate-900" placeholder="Masukkan NIM atau NISN" />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="sv-label">Asal Kampus / Sekolah</label>
-                <input type="text" value={asal} onChange={(e)=>setAsal(e.target.value)} required className="input-field" placeholder="Contoh: Universitas Diponegoro" />
+                <input type="text" value={asal} onChange={(e)=>setAsal(e.target.value)} required className="input-field text-slate-900" placeholder="Contoh: Universitas Diponegoro" />
+              </div>
+              <div>
+                <label className="sv-label">Nomor Telepon (WhatsApp)</label>
+                <input type="text" value={noTelp} onChange={(e)=>setNoTelp(e.target.value)} required className="input-field text-slate-900" placeholder="Contoh: 081234567890" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="sv-label">Pilih Divisi Penempatan</label>
+                <select value={divisiId} onChange={(e)=>setDivisiId(e.target.value)} required className="input-field text-slate-900 bg-white">
+                  <option value="">-- Pilih Divisi --</option>
+                  {quotas.map(q => <option key={q.id} value={q.id}>{q.divisi} (Sisa Kuota: {q.total - q.terisi})</option>)}
+                </select>
               </div>
               <div>
                 <label className="sv-label">Rencana Periode Magang</label>
                 <div className="flex gap-2">
-                  <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} required className="input-field" title="Tanggal Mulai" />
-                  <input type="date" min={startDate} value={endDate} onChange={(e)=>setEndDate(e.target.value)} required className="input-field" title="Tanggal Selesai" />
+                  <input type="date" value={startDate} onChange={(e)=>setStartDate(e.target.value)} required className="input-field text-slate-900" title="Tanggal Mulai" />
+                  <input type="date" min={startDate} value={endDate} onChange={(e)=>setEndDate(e.target.value)} required className="input-field text-slate-900" title="Tanggal Selesai" />
                 </div>
               </div>
-            </div>
-
-            <div>
-              <label className="sv-label">Pilih Divisi Penempatan</label>
-              <select value={divisiId} onChange={(e)=>setDivisiId(e.target.value)} required className="input-field">
-                <option value="">-- Pilih Divisi --</option>
-                {quotas.map(q => <option key={q.id} value={q.id}>{q.divisi} (Sisa Kuota: {q.total - q.terisi})</option>)}
-              </select>
             </div>
 
             {/* Dokumen Utama */}
@@ -284,7 +273,6 @@ if (myApp) {
                   {ktmError && <p className="text-red-500 text-xs mt-1">{ktmError}</p>}
                 </label>
               </div>
-
               <div>
                 <label className="sv-label">2. Surat Pengantar (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${suratError ? 'sv-upload-error' : suratFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -293,7 +281,6 @@ if (myApp) {
                   {suratError && <p className="text-red-500 text-xs mt-1">{suratError}</p>}
                 </label>
               </div>
-
               <div>
                 <label className="sv-label">3. Daftar Riwayat Hidup / CV (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${cvError ? 'sv-upload-error' : cvFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -302,7 +289,6 @@ if (myApp) {
                   {cvError && <p className="text-red-500 text-xs mt-1">{cvError}</p>}
                 </label>
               </div>
-
               <div>
                 <label className="sv-label">4. Portofolio ({isDivisiIT ? 'Mahasiswa TI' : 'Mahasiswa Non-TI'}) (PDF, Max 2MB)</label>
                 <label className={`sv-upload ${portoError ? 'sv-upload-error' : portoFile ? 'sv-upload-success' : 'sv-upload-default'}`}>
@@ -331,7 +317,6 @@ if (myApp) {
                     {igError && <p className="text-red-500 text-[10px]">{igError}</p>}
                   </label>
                 </div>
-
                 {/* 2. Facebook */}
                 <div className="flex flex-col gap-2">
                   <button type="button" onClick={() => handleFollowAction('fb', 'https://www.facebook.com/share/19ZXZDXPby/')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-blue-600 hover:bg-blue-700 text-white shadow-sm">
@@ -343,7 +328,6 @@ if (myApp) {
                     {fbError && <p className="text-red-500 text-[10px]">{fbError}</p>}
                   </label>
                 </div>
-
                 {/* 3. TikTok */}
                 <div className="flex flex-col gap-2">
                   <button type="button" onClick={() => handleFollowAction('tt', 'https://www.tiktok.com/@bps.kota.semarang?_r=1&_t=ZS-9Awv7An1UdK')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-slate-900 hover:bg-black text-white shadow-sm">
@@ -355,7 +339,6 @@ if (myApp) {
                     {ttError && <p className="text-red-500 text-[10px]">{ttError}</p>}
                   </label>
                 </div>
-
                 {/* 4. YouTube */}
                 <div className="flex flex-col gap-2">
                   <button type="button" onClick={() => handleFollowAction('yt', 'https://youtube.com/@bpskotasemarang8647?si=X9zCyF5OO98SqXLP')} className="py-2.5 px-4 rounded-lg font-bold text-xs flex items-center justify-between transition bg-red-600 hover:bg-red-700 text-white shadow-sm">
@@ -367,9 +350,7 @@ if (myApp) {
                     {ytError && <p className="text-red-500 text-[10px]">{ytError}</p>}
                   </label>
                 </div>
-
               </div>
-
               {!allSocialsFollowed && (
                 <p className="text-xs text-amber-600 font-medium mt-4 text-center">⚠ Harap klik keempat link media sosial di atas agar tombol Kirim Berkas dapat diakses.</p>
               )}
