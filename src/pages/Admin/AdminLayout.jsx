@@ -35,7 +35,17 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
           <button onClick={() => handleMenuChange('storage')} className={`admin-menu-btn ${activeMenu === 'storage' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Data Storage</button>
         </nav>
         <div className="p-4 border-t border-slate-700">
-          <button onClick={() => { if(window.confirm("Keluar?")) onLogout(); }} className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded transition">Logout</button>
+<button 
+  onClick={async () => { 
+    if(window.confirm("Yakin ingin keluar?")) {
+      await onLogout(); // Tunggu proses logout dari App.jsx selesai
+      window.location.href = '/'; // Lempar paksa ke Landing Page (GuestView)
+    } 
+  }} 
+  className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded transition"
+>
+  Logout
+</button>
         </div>
       </aside>
       <main className="admin-main">
