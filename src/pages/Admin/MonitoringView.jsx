@@ -9,15 +9,48 @@ const MonitoringView = () => {
   const fetchInterns = async () => {
     setIsLoading(true);
     try {
-      // Hanya mengambil data peserta yang sudah 'diterima'
+      // PERBAIKAN: Ambil juga user_id untuk keperluan fungsi hapus (RPC)
       const { data, error } = await supabase
         .from('pendaftaran')
-        .select('id, nama_peserta, asal_sekolah_kampus, tanggal_akhir')
+        .select('id, user_id, nama_peserta, asal_sekolah_kampus, tanggal_akhir')
         .eq('status_seleksi', 'diterima')
-        .order('tanggal_akhir', { ascending: true }); // Urutkan berdasarkan yang paling cepat selesai
+        .order('tanggal_akhir', { ascending: true }); 
 
       if (error) throw error;
-      setInterns(data || []);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); 
+
+      const validInterns = [];
+      const deletePromises = [];
+
+      // Logika Pengecekan Hapus Otomatis (Sehari setelah selesai)
+      for (const item of (data || [])) {
+        const endDate = new Date(item.tanggal_akhir);
+        endDate.setHours(0, 0, 0, 0);
+
+        // Tambahkan 1 hari dari tanggal berakhir (Batas Kedaluwarsa)
+        const expireDate = new Date(endDate);
+        expireDate.setDate(expireDate.getDate() + 1);
+
+        if (today > expireDate) {
+          // Jika hari ini sudah LEBIH DARI batas kedaluwarsa, masukkan ke antrean hapus backend
+          deletePromises.push(
+            supabase.rpc('delete_user_account', { target_user_id: item.user_id })
+          );
+        } else {
+          // Jika masih valid atau baru hari-H selesai, tampilkan di frontend
+          validInterns.push(item);
+        }
+      }
+
+      // Eksekusi penghapusan backend secara massal jika ada yang kedaluwarsa
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        console.log(`${deletePromises.length} mahasiswa otomatis dihapus karena masa magang telah usai.`);
+      }
+
+      setInterns(validInterns);
     } catch (err) {
       console.error("Gagal memuat data magang:", err);
     } finally {
@@ -29,18 +62,43 @@ const MonitoringView = () => {
     fetchInterns();
   }, []);
 
-  // Fungsi Logika Penentu Status Magang
+  // Fungsi Logika Penentu Status Magang (Visual Frontend)
   const getStatus = (endDate) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalisasi jam hari ini ke 00:00:00
+    today.setHours(0, 0, 0, 0);
     
     const end = new Date(endDate);
-    end.setHours(0, 0, 0, 0); // Normalisasi jam tanggal berakhir ke 00:00:00
+    end.setHours(0, 0, 0, 0);
 
+    // Akan berstatus 'Finished' tepat satu hari sebelum akhirnya besoknya dihapus otomatis
     if (today > end) {
       return { label: 'Finished Intern', color: 'bg-red-50 text-red-600 border-red-200' };
     } else {
       return { label: 'On-going Intern', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' };
+    }
+  };
+
+  // Fungsi Tombol Hapus/Keluarkan Manual
+  const handleKickIntern = async (userId, nama) => {
+    // Alert Peringatan Khusus Sesuai Permintaan
+    const confirmMsg = `Peringatan: Tombol ini hanya boleh dipencet ketika hanya anda ingin mengeluarkan anak magang.\n\nLanjutkan mengeluarkan "${nama}"?`;
+    
+    if (window.confirm(confirmMsg)) {
+      setIsLoading(true);
+      try {
+        const { error } = await supabase.rpc('delete_user_account', { 
+          target_user_id: userId 
+        });
+
+        if (error) throw error;
+
+        alert(`Mahasiswa atas nama ${nama} berhasil dikeluarkan dari program magang.`);
+        fetchInterns(); // Muat ulang data setelah dihapus
+      } catch (err) {
+        console.error(err);
+        alert(`Gagal mengeluarkan mahasiswa: ${err.message}`);
+        setIsLoading(false);
+      }
     }
   };
 
@@ -80,6 +138,7 @@ const MonitoringView = () => {
                     <th className="p-4 font-semibold">Asal Kampus/Sekolah</th>
                     <th className="p-4 font-semibold">Periode Selesai</th>
                     <th className="p-4 font-semibold text-center">Status</th>
+                    <th className="p-4 font-semibold text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -94,6 +153,14 @@ const MonitoringView = () => {
                           <span className={`px-3 py-1 rounded-full text-[11px] font-bold border ${status.color}`}>
                             {status.label}
                           </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button 
+                            onClick={() => handleKickIntern(item.user_id, item.nama_peserta)}
+                            className="bg-red-50 hover:bg-red-600 text-red-600 hover:text-white text-xs font-bold py-1.5 px-3 rounded transition border border-red-200"
+                          >
+                            Keluarkan
+                          </button>
                         </td>
                       </tr>
                     );
