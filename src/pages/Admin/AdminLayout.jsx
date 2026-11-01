@@ -3,12 +3,12 @@ import DashboardView from './DashboardView';
 import PendaftarView from './PendaftarView';
 import KelolaAkunView from './KelolaAkunView'; 
 import StorageManagerView from './StorageManagerView'; 
+import MonitoringView from './MonitoringView'; // <-- Impor MonitoringView
 import '../../styles/Admin.css'; 
 
 const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData }) => {
   const [activeMenu, setActiveMenu] = useState('dashboard');
 
-  // Fungsi untuk menangani pergantian menu dan menampilkan alert
   const handleMenuChange = (menu) => {
     if (menu === 'kelola_akun') {
       alert("Peringatan: Admin hanya boleh menghapus akun mahasiswa ketika mahasiswa tersebut sudah selesai magang.");
@@ -25,31 +25,14 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
           <div className="font-extrabold text-2xl text-white">DERMAGA Admin</div>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-          <button 
-            onClick={() => handleMenuChange('dashboard')} 
-            className={`admin-menu-btn ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
-          >
-            Beranda
-          </button>
-          <button 
-            onClick={() => handleMenuChange('pendaftar')} 
-            className={`admin-menu-btn ${activeMenu === 'pendaftar' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
-          >
-            Pendaftar
-          </button>
-          <button 
-            onClick={() => handleMenuChange('kelola_akun')} 
-            className={`admin-menu-btn ${activeMenu === 'kelola_akun' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
-          >
-            Kelola Akun
-          </button>
-          {/* Menu Tambahan Manajemen Storage */}
-          <button 
-            onClick={() => handleMenuChange('storage')} 
-            className={`admin-menu-btn ${activeMenu === 'storage' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}
-          >
-            Data Storage
-          </button>
+          <button onClick={() => handleMenuChange('dashboard')} className={`admin-menu-btn ${activeMenu === 'dashboard' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Beranda</button>
+          <button onClick={() => handleMenuChange('pendaftar')} className={`admin-menu-btn ${activeMenu === 'pendaftar' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Pendaftar</button>
+          
+          {/* Menu Baru: Monitoring */}
+          <button onClick={() => handleMenuChange('monitoring')} className={`admin-menu-btn ${activeMenu === 'monitoring' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Monitoring Magang</button>
+          
+          <button onClick={() => handleMenuChange('kelola_akun')} className={`admin-menu-btn ${activeMenu === 'kelola_akun' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Kelola Akun</button>
+          <button onClick={() => handleMenuChange('storage')} className={`admin-menu-btn ${activeMenu === 'storage' ? 'bg-blue-600 text-white' : 'hover:bg-slate-800'}`}>Data Storage</button>
         </nav>
         <div className="p-4 border-t border-slate-700">
           <button onClick={() => { if(window.confirm("Keluar?")) onLogout(); }} className="w-full bg-slate-800 hover:bg-red-600 text-white py-2 rounded transition">Logout</button>
@@ -58,6 +41,7 @@ const AdminLayout = ({ user, onLogout, quotas, setQuotas, pendaftar, refreshData
       <main className="admin-main">
         {activeMenu === 'dashboard' && <DashboardView user={user} quotas={quotas} setQuotas={setQuotas} refreshData={refreshData} />}
         {activeMenu === 'pendaftar' && <PendaftarView pendaftar={pendaftar} quotas={quotas} refreshData={refreshData} />}
+        {activeMenu === 'monitoring' && <MonitoringView />} {/* Render Monitoring */}
         {activeMenu === 'kelola_akun' && <KelolaAkunView refreshData={refreshData} />}
         {activeMenu === 'storage' && <StorageManagerView />}
       </main>

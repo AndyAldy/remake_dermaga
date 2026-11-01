@@ -29,8 +29,17 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
                 <span className="text-[10px] font-extrabold text-orange-600 uppercase tracking-widest mt-1">
                   Status: {user?.role === 'admin' ? 'Admin' : (user?.status || 'Seleksi')}
                 </span>
-              </div>
-              <button onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} className="nav-logout-btn">Keluar</button>
+            </div>
+              
+              {/* Tampilkan tombol keluar HANYA JIKA user BUKAN admin */}
+              {user?.role !== 'admin' && (
+                <button 
+                  onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} 
+                  className="nav-logout-btn">
+                  Keluar
+                </button>
+              )}
+              
             </div>
           )}
         </div>

@@ -174,9 +174,9 @@ return (
           // Jika peserta baru mendaftar atau pending, arahkan ke Seleksi
           <SeleksiView quotas={quotas} pendaftar={pendaftar} user={user} refreshData={fetchData} />
         )}
-      </main>
-
-      <Footer />
+</main>
+      {user?.role !== 'admin' && <Footer />}
+      
     </div>
   );
 };
