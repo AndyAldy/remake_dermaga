@@ -199,7 +199,7 @@ const SeleksiView = ({ quotas, pendaftar, user, refreshData }) => {
       <div className="sv-banner">
         <div>
           <p className="font-bold text-lg">Tahap Pemberkasan Magang</p>
-          <p className="text-sm text-blue-100">Pastikan seluruh dokumen dan persyaratan di bawah ini terpenuhi dengan benar.</p>
+          <p className="text-sm text-slate-700">Pastikan seluruh dokumen dan persyaratan di bawah ini terpenuhi dengan benar.</p>
         </div>
       </div>
 

@@ -64,9 +64,13 @@ const App = () => {
       setLoading(false);
     });
 
-    // Listener jika user melakukan Login / Logout
+// Listener jika user melakukan Login / Logout / Reset Sandi
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if (event === 'PASSWORD_RECOVERY') {
+        // Jika user masuk melalui link email reset password, 
+        // jangan langsung login, tapi panggil AuthModal untuk ganti sandi
+        handleOpenAuth('update_password');
+      } else if (event === 'SIGNED_IN' && session) {
         handleUserSession(session.user);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);

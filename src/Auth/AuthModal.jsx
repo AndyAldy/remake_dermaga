@@ -52,25 +52,42 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.includes('@') || !email.includes('.')) return setErrorMsg("Email tidak valid!");
+    
+    // Jangan validasi email jika sedang di tahap buat sandi baru
+    if (mode !== 'update_password' && (!email.includes('@') || !email.includes('.'))) {
+      return setErrorMsg("Email tidak valid!");
+    }
     
     setIsLoading(true);
     setErrorMsg('');
 
     try {
-      // --- LOGIKA LUPA SANDI ---
+      // --- 1. LOGIKA SIMPAN SANDI BARU (SETELAH KLIK LINK EMAIL) ---
+      if (mode === 'update_password') {
+        const { error } = await supabase.auth.updateUser({ password: password });
+        if (error) throw error;
+        
+        alert("Kata sandi berhasil diperbarui! Silakan masuk kembali menggunakan sandi baru Anda.");
+        await supabase.auth.signOut(); // Logout sesi sementara
+        setMode('login'); // Kembalikan ke form login
+        setIsLoading(false);
+        return;
+      }
+
+      // --- 2. LOGIKA MINTA LINK LUPA SANDI ---
       if (mode === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin,
         });
         if (error) throw error;
+        
         alert("Tautan pemulihan kata sandi telah dikirim ke email Anda!");
         setMode('login');
         setIsLoading(false);
         return;
       }
 
-      // --- LOGIKA LOGIN ---
+      // --- 3. LOGIKA LOGIN ---
       if (mode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({
           email: email,
@@ -97,7 +114,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
         });
 
       } else {
-        // --- LOGIKA REGISTRASI ---
+        // --- 4. LOGIKA REGISTRASI ---
         if (name.trim().length < 3) throw new Error("Nama Lengkap minimal 3 huruf!");
 
         const { data, error } = await supabase.auth.signUp({
@@ -114,7 +131,6 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
         if (error) throw error;
 
-        // Cek jika akun sudah terdaftar, kembalikan error
         if (data?.user?.identities?.length === 0) {
           throw new Error("Email ini sudah terdaftar. Jika lupa sandi, silakan gunakan menu Lupa Kata Sandi.");
         }
@@ -176,12 +192,12 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
             <div className="auth-header">
               <h2 className="auth-title">
                 {!isOtpSent 
-                  ? (mode === 'login' ? 'Masuk' : mode === 'register' ? 'Daftar Akun' : 'Lupa Sandi') 
+                  ? (mode === 'login' ? 'Masuk' : mode === 'register' ? 'Daftar Akun' : mode === 'forgot' ? 'Lupa Sandi' : 'Buat Sandi Baru') 
                   : 'Verifikasi Email'}
               </h2>
               <p className="auth-subtitle">
                 {!isOtpSent 
-                  ? (mode === 'login' ? 'Gunakan email dan kata sandi Anda.' : mode === 'register' ? 'Buat akun baru untuk mulai mendaftar magang.' : 'Masukkan email terdaftar untuk mengatur ulang sandi.') 
+                  ? (mode === 'login' ? 'Gunakan email dan kata sandi Anda.' : mode === 'register' ? 'Buat akun baru untuk mulai mendaftar magang.' : mode === 'forgot' ? 'Masukkan email terdaftar untuk mengatur ulang sandi.' : 'Masukkan kata sandi baru untuk akun Anda.') 
                   : `Masukkan 8 digit kode yang dikirim ke ${email}`}
               </p>
             </div>
@@ -195,7 +211,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
             {!isOtpSent ? (
               <form onSubmit={handleSubmit} className="auth-form">
                 
-                {/* LUPA SANDI HANYA EMAIL */}
+                {/* --- UI FORM MINTA LINK LUPA SANDI --- */}
                 {mode === 'forgot' ? (
                   <>
                     <div>
@@ -209,9 +225,26 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
                       Kembali ke Halaman Masuk
                     </button>
                   </>
-                ) : (
+
+                ) : mode === 'update_password' ? (
+                  /* --- UI FORM INPUT SANDI BARU --- */
                   <>
-                    {/* FORM LOGIN & DAFTAR NORMAL */}
+                    <div>
+                      <label className="auth-label">Kata Sandi Baru</label>
+                      <div className="auth-pwd-wrapper">
+                        <input type={showPassword ? "text" : "password"} required minLength="6" value={password} onChange={(e) => setPassword(e.target.value)} className="input-field pr-12 text-slate-900" placeholder="••••••••" />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="auth-pwd-toggle" title={showPassword ? "Sembunyikan" : "Tampilkan"}>{showPassword ? "🙈" : "🙉"}</button>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-1">Minimal 6 karakter.</p>
+                    </div>
+                    <button type="submit" disabled={isLoading} className="btn-primary mt-2">
+                      {isLoading ? 'Menyimpan...' : 'Simpan Sandi Baru'}
+                    </button>
+                  </>
+
+                ) : (
+                  /* --- UI FORM LOGIN & DAFTAR NORMAL --- */
+                  <>
                     {mode === 'register' && (
                       <div>
                         <label className="auth-label">Nama Lengkap</label>
@@ -254,6 +287,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
                 )}
               </form>
             ) : (
+              /* --- UI VERIFIKASI OTP --- */
               <form onSubmit={handleVerifyOtp} className="auth-form">
                 <div>
                   <label className="auth-label text-center block">Kode OTP</label>
@@ -264,7 +298,7 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
               </form>
             )}
             
-            {(!isOtpSent && mode !== 'forgot') && (
+            {(!isOtpSent && mode !== 'forgot' && mode !== 'update_password') && (
               <div className="auth-footer">
                 {mode === 'login' ? "Belum punya akun? " : "Sudah punya akun? "}
                 <button type="button" onClick={toggleMode} className="auth-link">
