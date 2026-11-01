@@ -21,8 +21,8 @@ const QuotaTable = ({ quotas }) => {
               <tr className="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider border-b border-slate-200">
                 <th className="py-4 px-6 font-semibold">Divisi Penempatan</th>
                 <th className="py-4 px-4 font-semibold text-center">Total Kuota</th>
-                <th className="py-4 px-4 font-semibold text-center">Terisi</th>
-                <th className="py-4 px-6 font-semibold text-center">Sisa Slot</th>
+                <th className="py-4 px-4 font-semibold text-center">KuotaTerisi</th>
+                <th className="py-4 px-6 font-semibold text-center">Sisa Slot tersedia</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
