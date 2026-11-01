@@ -33,7 +33,14 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
 
   if (!isOpen) return null;
 
-  const handleClose = () => {
+const handleClose = async () => {
+    // Jika user iseng menekan tombol (X) saat disuruh ganti sandi baru, 
+    // kita paksa logout agar tidak bisa bebas masuk ke dashboard.
+    if (mode === 'update_password') {
+      window.history.replaceState(null, '', window.location.pathname); // bersihkan URL
+      await supabase.auth.signOut();
+    }
+    
     setIsOtpSent(false);
     setErrorMsg('');
     onClose();
@@ -62,14 +69,17 @@ const AuthModal = ({ isOpen, onClose, initialMode, onAuthSuccess }) => {
     setErrorMsg('');
 
     try {
-      // --- 1. LOGIKA SIMPAN SANDI BARU (SETELAH KLIK LINK EMAIL) ---
       if (mode === 'update_password') {
         const { error } = await supabase.auth.updateUser({ password: password });
         if (error) throw error;
         
         alert("Kata sandi berhasil diperbarui! Silakan masuk kembali menggunakan sandi baru Anda.");
-        await supabase.auth.signOut(); // Logout sesi sementara
-        setMode('login'); // Kembalikan ke form login
+        
+        // Bersihkan token dari link URL web Anda agar aman saat di-refresh
+        window.history.replaceState(null, '', window.location.pathname);
+        
+        await supabase.auth.signOut(); // Logout sesi sementara dari Supabase
+        setMode('login'); // Arahkan kembali ke tab login
         setIsLoading(false);
         return;
       }

@@ -52,26 +52,33 @@ const App = () => {
       console.error('Gagal memuat data dari Supabase:', error.message);
     }
   };
-
-  // 2. DETEKSI OTOMATIS SAAT WEB DIBUKA & PANTAU STATUS LOGIN
   useEffect(() => {
-    // Tarik data tabel
     fetchData();
 
-    // Cek apakah ada user yang sudah login sebelumnya (saat di-refresh)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) handleUserSession(session.user);
-      setLoading(false);
-    });
+    // CEGATAN LUPA SANDI: Cek apakah user datang dari tautan Lupa Sandi di email
+    const isRecovery = window.location.hash.includes('type=recovery');
 
-// Listener jika user melakukan Login / Logout / Reset Sandi
+    if (isRecovery) {
+      // Jika dari link email, JANGAN proses login normal. Buka modal buat sandi baru.
+      handleOpenAuth('update_password');
+      setLoading(false);
+    } else {
+      // Jika login biasa, cek sesi secara normal
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) handleUserSession(session.user);
+        setLoading(false);
+      });
+    }
+
+    // Listener jika user melakukan Login / Logout / Lupa Sandi
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // Jika user masuk melalui link email reset password, 
-        // jangan langsung login, tapi panggil AuthModal untuk ganti sandi
         handleOpenAuth('update_password');
       } else if (event === 'SIGNED_IN' && session) {
-        handleUserSession(session.user);
+        // Cegah masuk ke aplikasi jika URL masih memiliki tanda Lupa Sandi (recovery)
+        if (!window.location.hash.includes('type=recovery')) {
+          handleUserSession(session.user);
+        }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
       }
@@ -81,6 +88,7 @@ const App = () => {
       authListener.subscription.unsubscribe();
     };
   }, []);
+
 
 const handleUserSession = async (u) => {
     // 1. Ambil email dasar
