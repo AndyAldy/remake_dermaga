@@ -4,6 +4,11 @@ import '../styles/NavBar.css';
 const Navbar = ({ user, onLogout, onOpenAuth }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
+  // Jika user yang login adalah admin, sembunyikan Navbar sepenuhnya
+  if (user?.role === 'admin') {
+    return null;
+  }
+
   return (
     <nav className="nav-bar">
       <div className="nav-container">
@@ -24,22 +29,18 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
             </>
           ) : (
             <div className="nav-user-badge">
-              <div className="flex flex-col items-end mr-1">
+              <div className="flex flex-col items-end mr-3">
                 <span className="font-bold text-sm text-blue-900 leading-none">{user?.name}</span>
                 <span className="text-[10px] font-extrabold text-orange-600 uppercase tracking-widest mt-1">
-                  Status: {user?.role === 'admin' ? 'Admin' : (user?.status || 'Seleksi')}
+                  Status: {user?.status || 'Seleksi'}
                 </span>
-            </div>
+              </div>
               
-              {/* Tampilkan tombol keluar HANYA JIKA user BUKAN admin */}
-              {user?.role !== 'admin' && (
-                <button 
-                  onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} 
-                  className="nav-logout-btn">
-                  Keluar
-                </button>
-              )}
-              
+              <button 
+                onClick={() => { if(window.confirm("Yakin keluar?")) onLogout(); }} 
+                className="nav-logout-btn">
+                Keluar
+              </button>
             </div>
           )}
         </div>
@@ -47,4 +48,5 @@ const Navbar = ({ user, onLogout, onOpenAuth }) => {
     </nav>
   );
 };
+
 export default Navbar;
